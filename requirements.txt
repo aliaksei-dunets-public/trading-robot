@@ -1,0 +1,8 @@
+fastapi==0.75.1
+pydantic==1.10.0a1
+uvicorn==0.15.0
+motor==2.5.1
+graphene==3.0.0b7
+python-dotenv==0.19.2
+pytest==6.2.5
+starlette-graphene3==0.6.0
