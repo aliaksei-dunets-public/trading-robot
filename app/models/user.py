@@ -1,6 +1,7 @@
-from app.models.common import IdentifierModel, AdminModel
+from app.models.common import BaseModel, IdentifierModel, AdminModel
 
-class UserModel(IdentifierModel, AdminModel):
+
+class UserModifyModel(BaseModel):
     first_name: str
     second_name: str
     technical_user: bool = False
@@ -11,3 +12,7 @@ class UserModel(IdentifierModel, AdminModel):
             "second_name": self.second_name,
             "technical_user": self.technical_user,
         }
+
+
+class UserModel(IdentifierModel, UserModifyModel, AdminModel):
+    pass

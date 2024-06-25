@@ -1,9 +1,12 @@
-from graphene import ObjectType, String, Boolean, DateTime
+from graphene_pydantic import PydanticObjectType, PydanticInputObjectType
+from app.models.user import UserModel, UserModifyModel
 
-class UserType(ObjectType):
-    id = String()
-    first_name = String()
-    second_name = String()
-    technical_user = Boolean()
-    created_at = DateTime()
-    changed_at = DateTime()
+
+class UserInput(PydanticInputObjectType):
+    class Meta:
+        model = UserModifyModel
+
+
+class UserType(PydanticObjectType):
+    class Meta:
+        model = UserModel

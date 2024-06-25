@@ -1,24 +1,25 @@
-from app.models.user import UserModel
-# from app.db.database import db
-from bson.objectid import ObjectId
+from app.models.user import UserModel, UserModifyModel
+from app.db.database import MongoDB
+from app.core.config import consts
 from datetime import datetime
 
-class UserHandler:
-    pass
-    
-    # @staticmethod
-    # async def get_user_by_id(user_id: str) -> UserModel:
-    #     data = await db["users"].find_one({"_id": ObjectId(user_id)})
-    #     return UserModel(**data) if data else None
+class UserHandler:    
+    def __init__(self) -> None:
+        self._db = MongoDB(consts.DB_COLLECTION_USERS)
 
-    # @staticmethod
-    # async def create_user(user: UserModel) -> UserModel:
-    #     user_dict = user.to_mongodb()
-    #     user_dict["created_at"] = datetime.utcnow()
-    #     user_dict["changed_at"] = datetime.utcnow()
-    #     result = await db["users"].insert_one(user_dict)
-    #     user.id = str(result.inserted_id)
-    #     return user
+    async def get_user(self, user_id: str) -> UserModel:
+        data =  await self._db.find_one(user_id)
+        return UserModel(**data) if data else None
+
+    async def get_users(self) -> list[UserModel]:
+        data =  await self._db.find_many()
+        users = [UserModel(**user) for user in data]
+        return users if users else []
+
+    async def create_user(self, user: UserModifyModel) -> UserModel:
+        user_dict = user.to_mongodb()
+        created_id = await self._db.insert_one(user_dict)
+        return self.get_user(created_id)
 
     # @staticmethod
     # async def update_user(user_id: str, user: UserModel) -> UserModel:
