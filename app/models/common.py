@@ -1,6 +1,10 @@
+from enum import Enum
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
 
+class ChannelTypeEnum(str, Enum):
+    EMAIL = "Email"
+    TELEGRAM_BOT = "Telegram"
 
 class IdentifierModel(BaseModel):
     id: str = Field(alias="_id", default=None)
