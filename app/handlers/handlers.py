@@ -23,6 +23,11 @@ class ChannelHandler:
         return channels if channels else []
 
     async def create_channel(self, channel: ChannelCreateModel) -> ChannelModel:
+        exist_user = await UserHandler().get_user(channel.user_id)
+        if not exist_user:
+            raise Exception(
+                f"[{self.__class__.__name__}]: create_channel - User {channel.user_id} is not found")
+
         channel_dict = channel.to_mongodb()
         created_id = await self._db.insert_one(channel_dict)
         return await self.get_channel(created_id)
