@@ -50,6 +50,7 @@ class DeleteUser(graphene.Mutation):
 #         user_mdl = await UserHandler().create_user(user_modify_mdl)
 #         return CreateUser(user=user_mdl)
 
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_user = UpdateUser.Field()

@@ -1,5 +1,5 @@
 from graphene_pydantic import PydanticObjectType, PydanticInputObjectType
-from graphene import Enum
+from graphene import Enum, List
 from app.models.main import ChannelTypeEnum, UserChangeModel, UserCreateModel, UserModel, ChannelModel, ChannelChangeModel, ChannelCreateModel
 
 

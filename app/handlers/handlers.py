@@ -11,14 +11,6 @@ class ChannelHandler:
     async def get_channel(self, channel_id: str) -> ChannelModel:
         data = await self._db.find_one(channel_id)
         return ChannelModel(**data) if data else None
-
-    async def get_complex_channel(self, channel_id: str, requested_models: list = []) -> ChannelComplexModel:
-        data = await self._db.find_one(channel_id)
-        if data:
-            user_id = data[consts.MODEL_FIELD_USER_ID]
-            if consts.MODEL_FIELD_USER in requested_models:
-                data[consts.MODEL_FIELD_USER] = await UserHandler().get_user(user_id=user_id)
-        return ChannelComplexModel(**data) if data else None
     
     async def get_channels(self, user_id: str = None, type: ChannelTypeEnum = None) -> list[ChannelModel]:
         query = {}
@@ -57,18 +49,6 @@ class UserHandler:
         return UserModel(**data) if data else None
 
     async def get_users(self) -> list[UserModel]:
-        data = await self._db.find_many()
-        users = [UserModel(**user) for user in data]
-        return users if users else []
-
-    async def get_complex_user(self, user_id: str, requested_models: list = []) -> UserComplexModel:
-        data = await self._db.find_one(user_id)
-        if data:
-            if consts.MODEL_FIELD_CHANNELS in requested_models:
-                data[consts.MODEL_FIELD_CHANNELS] = await ChannelHandler().get_channels(user_id=user_id)
-        return UserComplexModel(**data) if data else None
-
-    async def get_complex_users(self, selected: list = []) -> list[UserComplexModel]:
         data = await self._db.find_many()
         users = [UserModel(**user) for user in data]
         return users if users else []

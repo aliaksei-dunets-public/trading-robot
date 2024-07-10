@@ -36,6 +36,7 @@ class ChannelCreateModel(ChannelChangeModel):
 class ChannelModel(IdentifierModel, ChannelCreateModel, AdminModel):
     pass
 
+
 class UserChangeModel(BaseModel):
     first_name: str
     second_name: str
@@ -55,4 +56,3 @@ class UserCreateModel(UserChangeModel, ChannelIdentifierModel):
 
 class UserModel(IdentifierModel, UserChangeModel, AdminModel):
     pass
-
