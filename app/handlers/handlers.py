@@ -11,7 +11,7 @@ class ChannelHandler:
     async def get_channel(self, channel_id: str) -> ChannelModel:
         data = await self._db.find_one(channel_id)
         return ChannelModel(**data) if data else None
-    
+
     async def get_channels(self, user_id: str = None, type: ChannelTypeEnum = None) -> list[ChannelModel]:
         query = {}
         if user_id:
@@ -42,7 +42,16 @@ class ChannelHandler:
         return await self.get_channel(channel_id)
 
     async def delete_channel(self, channel_id: str) -> bool:
+        exist_channel = await self.get_channel(channel_id)
+        if not exist_channel:
+            raise Exception(
+                f"[{self.__class__.__name__}]: update_channel - Channel {channel_id} is not found")
         return await self._db.delete_one(channel_id)
+
+    async def delete_channels_by_user(self, user_id: str) -> bool:
+        query = {consts.MODEL_FIELD_USER_ID: user_id}
+        result = await self._db.delete_many(query)
+        return result
 
 
 class UserHandler:
@@ -76,4 +85,17 @@ class UserHandler:
         return await self.get_user(user_id)
 
     async def delete_user(self, user_id: str) -> bool:
-        return await self._db.delete_one(user_id)
+        exist_user = await self.get_user(user_id)
+        if not exist_user:
+            raise Exception(
+                f"[{self.__class__.__name__}]: delete_user - User {user_id} is not found")
+
+        # First, delete all channels associated with the user
+        channels_deleted = await ChannelHandler().delete_channels_by_user(user_id)
+        if not channels_deleted:
+            raise Exception(
+                f"[{self.__class__.__name__}]: delete_user - Failed to delete channels for user {user_id}")
+
+        # Then, delete the user
+        user_deleted = await self._db.delete_one(user_id)
+        return user_deleted

@@ -15,8 +15,6 @@ class Constants(BaseModel):
     MODEL_FIELD_CHANNEL = "channel"
     MODEL_FIELD_CHANNELS = "channels"
     MODEL_FIELD_NAME = "name"
-    # MODEL_FIELD_FIRST_NAME = "first_name"
-    # MODEL_FIELD_SECOND_NAME = "second_name"
 
 
 class Settings(BaseSettings):
