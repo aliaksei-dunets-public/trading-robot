@@ -1,0 +1,37 @@
+@startuml ObjectUML
+
+object User {
+  id: str
+  first_name: str
+  second_name: str
+  technical_user: bool
+  created_at: datetime
+  changed_at: datetime
+}
+
+object Trader {
+  id: str
+  user_id: str
+  exchange_id: ExchangeId
+  name: str
+  status: TraderStatus
+  expired_dt: datetime
+  default: bool
+  api_key: str
+  api_secret: str
+}
+
+object Channel {
+  id: str
+  user_id: str
+  type: ChannelTypeEnum
+  channel: str
+  created_at: datetime
+  changed_at: datetime
+}
+
+' Relationships
+User -- Trader
+User -- Channel
+
+@enduml

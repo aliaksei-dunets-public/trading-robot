@@ -1,0 +1,78 @@
+@startuml ClassUML
+
+enum ExchangeId {
+  demo_dzengi_com
+  dzengi_com
+  demo_bybit_com
+  bybit_com
+}
+
+enum ChannelTypeEnum {
+  EMAIL
+  TELEGRAM_BOT
+}
+
+enum TraderStatus {
+  NEW
+  ACTIVE
+  EXPIRED
+}
+
+class UserModel {
+  +id: String
+  +first_name: String
+  +second_name: String
+  +technical_user: Boolean
+  +created_at: DateTime
+  +changed_at: DateTime
+}
+
+class TraderModel {
+  +id: String
+  +user_id: String
+  +exchange_id: ExchangeId
+  +name: String
+  +status: TraderStatus
+  +expired_dt: DateTime
+  +default: Boolean
+  +api_key: String
+  +api_secret: String
+  +encrypt_key(): String
+  +decrypt_key(): String
+  +check_expired_dt(): Boolean
+}
+
+class ChannelModel {
+  +id: String
+  +user_id: String
+  +type: ChannelTypeEnum
+  +channel: String
+  +created_at: DateTime
+  +changed_at: DateTime
+}
+
+class TraderHandler {
+  +get_trader(trader_id: String): Trader
+  +get_traders(user_id: String): List<Trader>
+  +create_trader(trader: TraderCreateModel): Trader
+  +update_trader(trader_id: String, trader: TraderChangeModel): Trader
+  +delete_trader(trader_id: String): Boolean
+  +check_status(trader_id: String): Trader
+  +get_default_trader(user_id: String): Trader
+}
+
+class UserHandler {
+  +get_user(user_id: String): User
+  +get_users(): List<User>
+  +create_user(user: UserCreateModel): User
+  +update_user(user_id: String, user: UserChangeModel): User
+  +delete_user(user_id: String): Boolean
+}
+
+' Relationships
+UserModel "1" -- "0..*" TraderModel : owns
+UserModel "1" -- "0..*" ChannelModel : owns
+TraderModel "1" -- "1" ExchangeId
+TraderHandler -- TraderModel
+UserHandler -- UserModel
+@enduml

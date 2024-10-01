@@ -1,5 +1,4 @@
 from app.models.main import ChannelTypeEnum, UserModel, UserChangeModel, UserCreateModel, ChannelModel, ChannelChangeModel, ChannelCreateModel
-from app.models.complex import UserComplexModel, ChannelComplexModel
 from app.db.database import MongoDB
 from app.core.config import consts
 

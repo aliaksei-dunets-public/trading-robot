@@ -1,9 +1,27 @@
 from graphene_pydantic import PydanticObjectType, PydanticInputObjectType
-from graphene import Enum, List
-from app.models.main import ChannelTypeEnum, UserChangeModel, UserCreateModel, UserModel, ChannelModel, ChannelChangeModel, ChannelCreateModel
+from graphene import Enum
+from app.models.main import ChannelTypeEnum, ExchangeIdEnum, TraderStatusEnum, UserChangeModel, UserCreateModel, UserModel, ChannelModel, ChannelChangeModel, ChannelCreateModel, TraderModel
 
 
 ChannelTypeGrapheneEnum = Enum.from_enum(ChannelTypeEnum)
+ExchangeIdGrapheneEnum = Enum.from_enum(ExchangeIdEnum)
+TraderStatusGrapheneEnum = Enum.from_enum(TraderStatusEnum)
+
+
+class UserCreateInput(PydanticInputObjectType):
+    class Meta:
+        model = UserCreateModel
+    type = ChannelTypeGrapheneEnum()
+
+
+class UserChangeInput(PydanticInputObjectType):
+    class Meta:
+        model = UserChangeModel
+
+
+class UserType(PydanticObjectType):
+    class Meta:
+        model = UserModel
 
 
 class ChannelCreateInput(PydanticInputObjectType):
@@ -24,17 +42,22 @@ class ChannelType(PydanticObjectType):
     type = ChannelTypeGrapheneEnum()
 
 
-class UserCreateInput(PydanticInputObjectType):
+class TraderCreateInput(PydanticInputObjectType):
     class Meta:
-        model = UserCreateModel
-    type = ChannelTypeGrapheneEnum()
+        model = TraderModel
+    exchange_id = ExchangeIdGrapheneEnum()
+    status = TraderStatusGrapheneEnum()
 
 
-class UserChangeInput(PydanticInputObjectType):
+class TraderChangeInput(PydanticInputObjectType):
     class Meta:
-        model = UserChangeModel
+        model = TraderModel
+    exchange_id = ExchangeIdGrapheneEnum()
+    status = TraderStatusGrapheneEnum()
 
 
-class UserType(PydanticObjectType):
+class TraderType(PydanticObjectType):
     class Meta:
-        model = UserModel
+        model = TraderModel
+    exchange_id = ExchangeIdGrapheneEnum()
+    status = TraderStatusGrapheneEnum()
