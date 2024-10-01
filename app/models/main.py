@@ -71,9 +71,8 @@ class ChannelModel(IdentifierModel, ChannelCreateModel, AdminModel):
     pass
 
 
-class TraderModel(IdentifierModel, AdminModel):
+class TraderChangeModel(BaseModel):
     user_id: str
-    exchange_id: enum.ExchangeIdEnum
     name: str
     status: enum.TraderStatusEnum = enum.TraderStatusEnum.New
     expired_dt: datetime = datetime.now() + timedelta(days=365)
@@ -93,10 +92,9 @@ class TraderModel(IdentifierModel, AdminModel):
     def decrypt_key(self, encrypted_key, user_token=None):
         return EncryptionTool.decrypt_key(self.user_id, encrypted_key, user_token)
 
-    def to_mongodb_doc(self):
+    def to_mongodb(self):
         return {
             consts.MODEL_FIELD_USER_ID: self.user_id,
-            consts.MODEL_FIELD_EXCHANGE_ID: self.exchange_id,
             consts.MODEL_FIELD_NAME: self.name,
             consts.MODEL_FIELD_STATUS: self.status,
             consts.MODEL_FIELD_EXPIRED_DT: self.expired_dt,
@@ -104,6 +102,19 @@ class TraderModel(IdentifierModel, AdminModel):
             consts.MODEL_FIELD_API_KEY: self.api_key,
             consts.MODEL_FIELD_API_SECRET: self.api_secret,
         }
+
+
+class TraderCreateModel(TraderChangeModel):
+    exchange_id: enum.ExchangeIdEnum
+
+    def to_mongodb_doc(self):
+        data = super().to_mongodb()
+        data[consts.MODEL_FIELD_EXCHANGE_ID] = self.exchange_id
+        return data
+
+
+class TraderModel(IdentifierModel, TraderCreateModel, AdminModel):
+    pass
 
 
 class UserChangeModel(BaseModel):

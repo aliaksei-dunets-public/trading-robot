@@ -1,31 +1,31 @@
 import graphene
-from app.schemas.main import UserCreateInput, UserChangeInput, UserType, ChannelCreateInput, ChannelChangeInput, ChannelType
-from app.models.main import UserChangeModel, UserCreateModel, ChannelCreateModel, ChannelChangeModel
-from app.handlers.handlers import UserHandler, ChannelHandler
+import app.schemas.main as schema
+import app.models.main as model
+import app.handlers.handlers as handler
 
 
 class CreateUser(graphene.Mutation):
     class Arguments:
-        user_data = UserCreateInput(required=True)
+        user_data = schema.UserCreateInput(required=True)
 
-    user = graphene.Field(UserType)
+    user = graphene.Field(schema.UserType)
 
     async def mutate(parent, info, user_data):
-        user_create_mdl = UserCreateModel(**user_data)
-        user_mdl = await UserHandler().create_user(user_create_mdl)
+        user_create_mdl = model.UserCreateModel(**user_data)
+        user_mdl = await handler.UserHandler().create_user(user_create_mdl)
         return CreateUser(user=user_mdl)
 
 
 class UpdateUser(graphene.Mutation):
     class Arguments:
         user_id = graphene.String(required=True)
-        user_data = UserChangeInput(required=True)
+        user_data = schema.UserChangeInput(required=True)
 
-    user = graphene.Field(UserType)
+    user = graphene.Field(schema.UserType)
 
     async def mutate(parent, info, user_id, user_data):
-        user_modify_mdl = UserChangeModel(**user_data)
-        user = await UserHandler().update_user(user_id, user_modify_mdl)
+        user_modify_mdl = model.UserChangeModel(**user_data)
+        user = await handler.UserHandler().update_user(user_id, user_modify_mdl)
         return UpdateUser(user=user)
 
 
@@ -36,32 +36,32 @@ class DeleteUser(graphene.Mutation):
     success = graphene.Boolean()
 
     async def mutate(parent, info, user_id):
-        success = await UserHandler().delete_user(user_id)
+        success = await handler.UserHandler().delete_user(user_id)
         return DeleteUser(success=success)
 
 
 class CreateChannel(graphene.Mutation):
     class Arguments:
-        channel_data = ChannelCreateInput(required=True)
+        channel_data = schema.ChannelCreateInput(required=True)
 
-    channel = graphene.Field(ChannelType)
+    channel = graphene.Field(schema.ChannelType)
 
     async def mutate(parent, info, channel_data):
-        create_mdl = ChannelCreateModel(**channel_data)
-        model = await ChannelHandler().create_channel(create_mdl)
-        return CreateChannel(model)
+        create_mdl = model.ChannelCreateModel(**channel_data)
+        channel_mdl = await handler.ChannelHandler().create_channel(create_mdl)
+        return CreateChannel(channel_mdl)
 
 
 class UpdateChannel(graphene.Mutation):
     class Arguments:
         channel_id = graphene.String(required=True)
-        channel_data = ChannelChangeInput(required=True)
+        channel_data = schema.ChannelChangeInput(required=True)
 
-    channel = graphene.Field(ChannelType)
+    channel = graphene.Field(schema.ChannelType)
 
     async def mutate(parent, info, channel_id, channel_data):
-        channel_modify_mdl = ChannelChangeModel(**channel_data)
-        channel = await ChannelHandler().update_channel(channel_id, channel_modify_mdl)
+        channel_modify_mdl = model.ChannelChangeModel(**channel_data)
+        channel = await handler.ChannelHandler().update_channel(channel_id, channel_modify_mdl)
         return UpdateChannel(channel=channel)
 
 
@@ -72,14 +72,55 @@ class DeleteChannel(graphene.Mutation):
     success = graphene.Boolean()
 
     async def mutate(parent, info, channel_id):
-        success = await ChannelHandler().delete_channel(channel_id)
+        success = await handler.ChannelHandler().delete_channel(channel_id)
         return DeleteChannel(success=success)
+
+
+class CreateTrader(graphene.Mutation):
+    class Arguments:
+        trader_data = schema.TraderCreateInput(required=True)
+
+    trader = graphene.Field(schema.TraderType)
+
+    async def mutate(parent, info, trader_data):
+        trader_create_mdl = model.TraderCreateModel(**trader_data)
+        trader_mdl = await handler.TraderHandler().create_trader(trader_create_mdl)
+        return CreateTrader(trader=trader_mdl)
+
+
+class UpdateTrader(graphene.Mutation):
+    class Arguments:
+        trader_id = graphene.String(required=True)
+        trader_data = schema.TraderChangeInput(required=True)
+
+    trader = graphene.Field(schema.TraderType)
+
+    async def mutate(parent, info, trader_id, trader_data):
+        trader_modify_mdl = model.TraderChangeModel(**trader_data)
+        trader = await handler.TraderHandler().update_trader(trader_id, trader_modify_mdl)
+        return UpdateTrader(trader=trader)
+
+
+class DeleteTrader(graphene.Mutation):
+    class Arguments:
+        trader_id = graphene.String(required=True)
+
+    success = graphene.Boolean()
+
+    async def mutate(parent, info, trader_id):
+        success = await handler.TraderHandler().delete_trader(trader_id)
+        return DeleteTrader(success=success)
 
 
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_user = UpdateUser.Field()
     delete_user = DeleteUser.Field()
+
     create_channel = CreateChannel.Field()
     update_channel = UpdateChannel.Field()
     delete_channel = DeleteChannel.Field()
+
+    create_trader = CreateTrader.Field()
+    update_trader = UpdateTrader.Field()
+    delete_trader = DeleteTrader.Field()

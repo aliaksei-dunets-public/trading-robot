@@ -1,4 +1,5 @@
-from app.models.main import ChannelTypeEnum, UserModel, UserChangeModel, UserCreateModel, ChannelModel, ChannelChangeModel, ChannelCreateModel
+import app.models.main as model
+import app.models.enum as enum
 from app.db.database import MongoDB
 from app.core.config import consts
 
@@ -7,21 +8,21 @@ class ChannelHandler:
     def __init__(self) -> None:
         self._db = MongoDB(consts.DB_COLLECTION_CHANNELS)
 
-    async def get_channel(self, channel_id: str) -> ChannelModel:
+    async def get_channel(self, channel_id: str) -> model.ChannelModel:
         data = await self._db.find_one(channel_id)
-        return ChannelModel(**data) if data else None
+        return model.ChannelModel(**data) if data else None
 
-    async def get_channels(self, user_id: str = None, type: ChannelTypeEnum = None) -> list[ChannelModel]:
+    async def get_channels(self, user_id: str = None, type: enum.ChannelTypeEnum = None) -> list[model.ChannelModel]:
         query = {}
         if user_id:
             query[consts.MODEL_FIELD_USER_ID] = user_id
         if type:
             query[consts.MODEL_FIELD_TYPE] = type
         data = await self._db.find_many(query)
-        channels = [ChannelModel(**channel) for channel in data]
+        channels = [model.ChannelModel(**channel) for channel in data]
         return channels if channels else []
 
-    async def create_channel(self, channel: ChannelCreateModel) -> ChannelModel:
+    async def create_channel(self, channel: model.ChannelCreateModel) -> model.ChannelModel:
         exist_user = await UserHandler().get_user(channel.user_id)
         if not exist_user:
             raise Exception(
@@ -31,7 +32,7 @@ class ChannelHandler:
         created_id = await self._db.insert_one(channel_dict)
         return await self.get_channel(created_id)
 
-    async def update_channel(self, channel_id: str, channel: ChannelChangeModel) -> ChannelModel:
+    async def update_channel(self, channel_id: str, channel: model.ChannelChangeModel) -> model.ChannelModel:
         exist_channel = await self.get_channel(channel_id)
         if not exist_channel:
             raise Exception(
@@ -53,28 +54,100 @@ class ChannelHandler:
         return result
 
 
+class TraderHandler:
+    def __init__(self):
+        self._db = MongoDB(consts.DB_COLLECTION_TRADERS)
+
+    async def get_trader(self, trader_id: str) -> model.TraderModel:
+        data = await self._db.find_one(trader_id)
+        return model.TraderModel(**data) if data else None
+
+    async def get_traders(self, user_id: str = None) -> list[model.TraderModel]:
+        query = {}
+        if user_id:
+            query[consts.MODEL_FIELD_USER_ID] = user_id
+        data = await self._db.find_many(query)
+        traders = [model.TraderModel(**trader) for trader in data]
+        return traders if traders else []
+
+    async def create_trader(self, trader: model.TraderCreateModel) -> model.TraderModel:
+        # TODO - add trader checks
+        # await self.check_trader_status(trader)
+
+        # TODO - think about encrypting on the model side
+        # Encrypt API key and secret before saving to the DB
+        if trader.api_key:
+            trader.api_key = trader.encrypt_key(key=trader.api_key)
+        if trader.api_secret:
+            trader.api_secret = trader.encrypt_key(key=trader.api_secret)
+
+        trader_dict = trader.to_mongodb_doc()
+        created_id = await self._db.insert_one(trader_dict)
+        return await self.get_trader(created_id)
+
+    async def update_trader(self, trader_id: str, trader: model.TraderChangeModel) -> model.TraderModel:
+        exist_trader = await self.get_trader(trader_id)
+        if not exist_trader:
+            raise Exception(
+                f"[{self.__class__.__name__}]: update_trader - Trader {trader_id} is not found")
+
+        # TODO - add trader checks
+        # await self.check_trader_status(trader)
+
+        # TODO - think about encrypting on the model side
+        # Encrypt API key and secret before saving to the DB
+        if trader.api_key:
+            trader.api_key = trader.encrypt_key(key=trader.api_key)
+        if trader.api_secret:
+            trader.api_secret = trader.encrypt_key(key=trader.api_secret)
+
+        trader_dict = trader.to_mongodb_doc()
+        await self._db.update_one(trader_id, trader_dict)
+        return await self.get_trader(trader_id)
+
+    async def check_trader_status(self, trader: model.TraderModel):
+        pass
+        # TODO - add trader checks
+
+    async def get_default_trader(self, user_id: str) -> model.TraderModel:
+        query = {consts.MODEL_FIELD_USER_ID: user_id,
+                 consts.MODEL_FIELD_DEFAULT: True}
+        data = await self._db.find_one(query)
+        return model.TraderModel(**data) if data else None
+
+    async def delete_trader(self, trader_id: str) -> bool:
+        exist_trader = await self.get_trader(trader_id)
+        if not exist_trader:
+            raise Exception(
+                f"[{self.__class__.__name__}]: delete_trader - Trader {trader_id} is not found")
+        return await self._db.delete_one(trader_id)
+
+    async def delete_traders_by_user(self, user_id: str) -> bool:
+        return await self._db.delete_many({consts.MODEL_FIELD_USER_ID: user_id})
+
+
 class UserHandler:
     def __init__(self) -> None:
         self._db = MongoDB(consts.DB_COLLECTION_USERS)
 
-    async def get_user(self, user_id: str) -> UserModel:
+    async def get_user(self, user_id: str) -> model.UserModel:
         data = await self._db.find_one(user_id)
-        return UserModel(**data) if data else None
+        return model.UserModel(**data) if data else None
 
-    async def get_users(self) -> list[UserModel]:
+    async def get_users(self) -> list[model.UserModel]:
         data = await self._db.find_many()
-        users = [UserModel(**user) for user in data]
+        users = [model.UserModel(**user) for user in data]
         return users if users else []
 
-    async def create_user(self, user: UserCreateModel) -> UserModel:
+    async def create_user(self, user: model.UserCreateModel) -> model.UserModel:
         user_dict = user.to_mongodb()
         created_id = await self._db.insert_one(user_dict)
-        channel_mdl = ChannelCreateModel(
+        channel_mdl = model.ChannelCreateModel(
             user_id=created_id, type=user.type, channel=user.channel)
         await ChannelHandler().create_channel(channel_mdl)
         return await self.get_user(created_id)
 
-    async def update_user(self, user_id: str, user: UserChangeModel) -> UserModel:
+    async def update_user(self, user_id: str, user: model.UserChangeModel) -> model.UserModel:
         exist_user = await self.get_user(user_id)
         if not exist_user:
             raise Exception(
@@ -94,6 +167,12 @@ class UserHandler:
         if not channels_deleted:
             raise Exception(
                 f"[{self.__class__.__name__}]: delete_user - Failed to delete channels for user {user_id}")
+
+        # Second, delete all channels associated with the user
+        traders_deleted = await TraderHandler().delete_traders_by_user(user_id)
+        if not traders_deleted:
+            raise Exception(
+                f"[{self.__class__.__name__}]: delete_user - Failed to delete traders for user {user_id}")
 
         # Then, delete the user
         user_deleted = await self._db.delete_one(user_id)

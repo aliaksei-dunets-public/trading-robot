@@ -1,26 +1,44 @@
 from graphene_pydantic import PydanticObjectType
 from graphene import List
-from app.models.complex import UserComplexModel, ChannelComplexModel
-from app.schemas.main import ChannelTypeGrapheneEnum, UserType, ChannelType
-from app.handlers.handlers import UserHandler, ChannelHandler
+import app.models.complex as model
+import app.schemas.main as schema
+import app.handlers.handlers as handler
 
 
 class ChannelComplexType(PydanticObjectType):
     class Meta:
-        model = ChannelComplexModel
+        model = model.ChannelComplexModel
 
-    type = ChannelTypeGrapheneEnum()
-    user = UserType
+    type = schema.ChannelTypeGrapheneEnum()
+
+    user = schema.UserType
 
     async def resolve_user(parent, info):
-        return await UserHandler().get_user(user_id=parent.user_id)
+        return await handler.UserHandler().get_user(user_id=parent.user_id)
+
+
+class TraderComplexType(PydanticObjectType):
+    class Meta:
+        model = model.TraderComplexModel
+
+    exchange_id = schema.ExchangeIdGrapheneEnum()
+    status = schema.TraderStatusGrapheneEnum()
+
+    user = schema.UserType
+
+    async def resolve_user(parent, info):
+        return await handler.UserHandler().get_user(user_id=parent.user_id)
 
 
 class UserComplexType(PydanticObjectType):
     class Meta:
-        model = UserComplexModel
+        model = model.UserComplexModel
 
-    channels = List(ChannelType)
+    channels = List(schema.ChannelType)
+    traders = List(schema.TraderType)
 
     async def resolve_channels(parent, info):
-        return await ChannelHandler().get_channels(user_id=parent.id)
+        return await handler.ChannelHandler().get_channels(user_id=parent.id)
+
+    async def resolve_traders(parent, info):
+        return await handler.TraderHandler().get_traders(user_id=parent.id)
