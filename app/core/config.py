@@ -22,6 +22,7 @@ class Constants(BaseModel):
     MODEL_FIELD_DEFAULT = "default"
     MODEL_FIELD_API_KEY = "api_key"
     MODEL_FIELD_API_SECRET = "api_secret"
+    MODEL_FIELD_SYMBOL = "symbol"
 
 
 class Settings(BaseSettings):

@@ -28,12 +28,54 @@ class SymbolIdModel(BaseModel):
 
 class IntervalIdModel(BaseModel):
     interval: enum.IntervalEnum
+
+
+class TraderIdModel(BaseModel):
+    trader_id: str
+
 ################## ID models #######################
+
+################## Parameters models #######################
+
+
+class SymbolIntervalLimitParamModel(SymbolIdModel, IntervalIdModel):
+    limit: int = 0
+
+    def set_limit(self, value: int):
+        if value:
+            self.limit = value
+
+
+class TraderSymbolIntervalLimitParamModel(TraderIdModel, SymbolIntervalLimitParamModel):
+    pass
+
+################## Parameters models #######################
 
 
 class AdminModel(BaseModel):
     created_at: datetime = None
     changed_at: datetime = None
+
+
+class SymbolModel(SymbolIdModel):
+    name: str
+    descr: str = ""
+    status: enum.SymbolStatusEnum
+    type: enum.TradingTypeEnum
+    currency: str
+    quote_precision: int
+    trading_fee: float = None
+    trading_time: str
+
+    @validator("descr", pre=True, always=True)
+    def concate_descr(cls, descr, values):
+        name = values.get(consts.MODEL_FIELD_NAME)
+        symbol = values.get(consts.MODEL_FIELD_SYMBOL)
+        if name and name != symbol:
+            descr = f'{name} ({symbol})'
+        else:
+            descr = symbol
+        return descr
 
 
 class ChannelIdentifierModel(BaseModel):
@@ -47,21 +89,23 @@ class ChannelIdentifierModel(BaseModel):
         }
 
 
-class ChannelChangeModel(ChannelIdentifierModel):
-    name: str = 'Default Channel'
+class ChannelChangeModel(BaseModel):
+    name: str
 
     def to_mongodb(self):
-        data = super().to_mongodb()
-        data[consts.MODEL_FIELD_NAME] = self.name
-        return data
+        return {
+            consts.MODEL_FIELD_NAME: self.name
+        }
 
 
-class ChannelCreateModel(ChannelChangeModel):
+class ChannelCreateModel(ChannelIdentifierModel):
     user_id: str
+    name: str
 
     def to_mongodb(self):
         data = super().to_mongodb()
         data[consts.MODEL_FIELD_USER_ID] = self.user_id
+        data[consts.MODEL_FIELD_NAME] = self.name
         return data
 
 
@@ -92,7 +136,6 @@ class TraderChangeModel(BaseModel):
 
     def to_mongodb(self):
         return {
-            consts.MODEL_FIELD_USER_ID: self.user_id,
             consts.MODEL_FIELD_NAME: self.name,
             consts.MODEL_FIELD_STATUS: self.status,
             consts.MODEL_FIELD_EXPIRED_DT: self.expired_dt,
@@ -107,6 +150,7 @@ class TraderCreateModel(TraderChangeModel):
 
     def to_mongodb_doc(self):
         data = super().to_mongodb()
+        data[consts.MODEL_FIELD_USER_ID] = self.user_id
         data[consts.MODEL_FIELD_EXCHANGE_ID] = self.exchange_id
         return data
 

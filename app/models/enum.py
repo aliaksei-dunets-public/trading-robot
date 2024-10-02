@@ -27,6 +27,11 @@ class TradingTypeEnum(str, Enum):
     SPOT = "Spot"
 
 
+class SymbolStatusEnum(str, Enum):
+    OPEN = "Open"
+    CLOSE = "Close"
+
+
 class IntervalEnum(str, Enum):
     MIN_1 = "1m"            # 1 minute
     MIN_3 = "3m"            # 3 minutes

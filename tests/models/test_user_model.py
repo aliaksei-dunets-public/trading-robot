@@ -73,13 +73,9 @@ def test_channel_identifier_model():
 
 def test_channel_change_model():
     data = {
-        "type": ChannelTypeEnum.TELEGRAM_BOT,
-        "channel": "@mytelegram",
         "name": "My Channel"
     }
     model = ChannelChangeModel(**data)
-    assert model.type == ChannelTypeEnum.TELEGRAM_BOT
-    assert model.channel == "@mytelegram"
     assert model.name == "My Channel"
     assert model.to_mongodb()[consts.MODEL_FIELD_NAME] == "My Channel"
 
@@ -93,6 +89,9 @@ def test_channel_create_model():
     }
     model = ChannelCreateModel(**data)
     assert model.user_id == "user123"
+    assert model.type == ChannelTypeEnum.EMAIL
+    assert model.channel == "test@example.com"
+    assert model.name == "User Channel"
     assert model.to_mongodb()[consts.MODEL_FIELD_USER_ID] == "user123"
 
 
@@ -117,23 +116,32 @@ def test_channel_model():
 def test_trader_change_model():
     user_id = "user123"
     name = "Trader One"
+    expired_datetime = datetime.now() + timedelta(days=365)
+    key = 'abc12345'
     data = {
         "user_id": user_id,
         "name": name,
         "api_key": "some_api_key",
-        "api_secret": "some_api_secret"
+        "api_secret": "some_api_secret",
+        "expired_dt": expired_datetime
     }
     model = TraderChangeModel(**data)
 
     assert model.user_id == user_id
     assert model.name == name
     assert model.status == TraderStatusEnum.New
+    assert model.expired_dt == expired_datetime
+
     # Check if the default expired_dt is valid
     assert model.expired_dt > datetime.now()
 
     with pytest.raises(ValidationError):
         TraderChangeModel(user_id=user_id, name=name, expired_dt=datetime.now(
         ) - timedelta(days=1))  # Invalid expired_dt
+
+    encrypted_key = model.encrypt_key(key=key)
+    assert encrypted_key != key
+    assert model.decrypt_key(encrypted_key=encrypted_key) == key
 
 
 def test_trader_create_model():

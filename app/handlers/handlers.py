@@ -1,7 +1,13 @@
+from app.core.config import consts
 import app.models.main as model
 import app.models.enum as enum
 from app.db.database import MongoDB
-from app.core.config import consts
+from api.common import ApiBase
+from api.dzengi_com import ApiDzengiCom, ApiDemoDzengiCom
+
+
+class ExceptionHandler(Exception):
+    pass
 
 
 class ChannelHandler:
@@ -25,8 +31,8 @@ class ChannelHandler:
     async def create_channel(self, channel: model.ChannelCreateModel) -> model.ChannelModel:
         exist_user = await UserHandler().get_user(channel.user_id)
         if not exist_user:
-            raise Exception(
-                f"[{self.__class__.__name__}]: create_channel - User {channel.user_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: create_channel - User: {channel.user_id} is not found")
 
         channel_dict = channel.to_mongodb()
         created_id = await self._db.insert_one(channel_dict)
@@ -35,8 +41,8 @@ class ChannelHandler:
     async def update_channel(self, channel_id: str, channel: model.ChannelChangeModel) -> model.ChannelModel:
         exist_channel = await self.get_channel(channel_id)
         if not exist_channel:
-            raise Exception(
-                f"[{self.__class__.__name__}]: update_channel - Channel {channel_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: update_channel - Channel: {channel_id} is not found")
         channel_dict = channel.to_mongodb()
         await self._db.update_one(id=channel_id, query=channel_dict)
         return await self.get_channel(channel_id)
@@ -44,8 +50,8 @@ class ChannelHandler:
     async def delete_channel(self, channel_id: str) -> bool:
         exist_channel = await self.get_channel(channel_id)
         if not exist_channel:
-            raise Exception(
-                f"[{self.__class__.__name__}]: update_channel - Channel {channel_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: update_channel - Channel: {channel_id} is not found")
         return await self._db.delete_one(channel_id)
 
     async def delete_channels_by_user(self, user_id: str) -> bool:
@@ -88,8 +94,8 @@ class TraderHandler:
     async def update_trader(self, trader_id: str, trader: model.TraderChangeModel) -> model.TraderModel:
         exist_trader = await self.get_trader(trader_id)
         if not exist_trader:
-            raise Exception(
-                f"[{self.__class__.__name__}]: update_trader - Trader {trader_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: update_trader - Trader: {trader_id} is not found")
 
         # TODO - add trader checks
         # await self.check_trader_status(trader)
@@ -118,8 +124,8 @@ class TraderHandler:
     async def delete_trader(self, trader_id: str) -> bool:
         exist_trader = await self.get_trader(trader_id)
         if not exist_trader:
-            raise Exception(
-                f"[{self.__class__.__name__}]: delete_trader - Trader {trader_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: delete_trader - Trader: {trader_id} is not found")
         return await self._db.delete_one(trader_id)
 
     async def delete_traders_by_user(self, user_id: str) -> bool:
@@ -150,8 +156,8 @@ class UserHandler:
     async def update_user(self, user_id: str, user: model.UserChangeModel) -> model.UserModel:
         exist_user = await self.get_user(user_id)
         if not exist_user:
-            raise Exception(
-                f"[{self.__class__.__name__}]: update_user - User {user_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: update_user - User : {user_id} is not found")
         user_dict = user.to_mongodb()
         await self._db.update_one(id=user_id, query=user_dict)
         return await self.get_user(user_id)
@@ -159,21 +165,77 @@ class UserHandler:
     async def delete_user(self, user_id: str) -> bool:
         exist_user = await self.get_user(user_id)
         if not exist_user:
-            raise Exception(
-                f"[{self.__class__.__name__}]: delete_user - User {user_id} is not found")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: delete_user - User: {user_id} is not found")
 
         # First, delete all channels associated with the user
         channels_deleted = await ChannelHandler().delete_channels_by_user(user_id)
         if not channels_deleted:
-            raise Exception(
-                f"[{self.__class__.__name__}]: delete_user - Failed to delete channels for user {user_id}")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: delete_user - Failed to delete channels for user: {user_id}")
 
         # Second, delete all channels associated with the user
         traders_deleted = await TraderHandler().delete_traders_by_user(user_id)
         if not traders_deleted:
-            raise Exception(
-                f"[{self.__class__.__name__}]: delete_user - Failed to delete traders for user {user_id}")
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: delete_user - Failed to delete traders for user: {user_id}")
 
         # Then, delete the user
         user_deleted = await self._db.delete_one(user_id)
         return user_deleted
+
+
+class ExchangeHandler:
+    def __init__(self, trader_id: str):
+        self.__api: ApiBase = None
+        self.__trader_mdl: model.TraderModel = TraderHandler().get_trader(trader_id)
+
+        if not self.__trader_mdl or not self.__trader_mdl.exchange_id:
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: __init__ - Exchange Id is missed for Trader: {trader_id}")
+
+    def get_trader_id(self) -> str:
+        return self.__trader_mdl.id
+
+    def get_trader_model(self) -> model.TraderModel:
+        return self.__trader_mdl
+
+    def get_api(self) -> ApiBase:
+        if not self.__api:
+            if self.__trader_mdl.exchange_id == enum.ExchangeIdEnum.dzengi_com:
+                self.__api = ApiDzengiCom(trader_model=self.__trader_mdl)
+            elif self.__trader_mdl.exchange_id == enum.ExchangeIdEnum.demo_dzengi_com:
+                self.__api = ApiDemoDzengiCom(trader_model=self.__trader_mdl)
+            else:
+                raise ExceptionHandler(
+                    f"[{self.__class__.__name__}]: __init__ - API implementation is missed for Exchange Id: {self.__trader_mdl.exchange_id}")
+
+        return self.__api
+
+
+class SymbolHandler():
+    def __init__(self, trader_id: str):
+        self.__api: ApiBase = ExchangeHandler(trader_id).get_api()
+
+    def get_symbol(self, symbol: str) -> model.SymbolModel:
+        # symbol_model = self.get_symbols()[symbol]
+        # return symbol_model
+        # TODO
+        pass
+
+    def get_symbols(self) -> dict[model.SymbolModel]:
+        symbols = {}
+
+        # # If buffer data is existing -> get symbols from the buffer
+        # if self._buffer_symbols.is_data_in_buffer():
+        #     #  Get symbols from the buffer
+        #     symbols = self._buffer_symbols.get_buffer()
+        # else:
+        #     # Send a request to an API to get symbols
+        #     symbols = self._exchange_handler.get_symbols()
+        #     # Set fetched symbols to the buffer
+        #     self._buffer_symbols.set_buffer(symbols)
+
+        symbols = self.__api.get_symbols()
+
+        return symbols
