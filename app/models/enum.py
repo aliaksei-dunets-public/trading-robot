@@ -15,11 +15,11 @@ ExchangeIdEnum.bybit_com.__doc__ = "ByBit.com"
 
 
 class TraderStatusEnum(int, Enum):
-    New = "0"
-    Public = "1"
-    Private = "2"
-    Expired = "-1"
-    Failed = "-2"
+    New = 0
+    Public = 1
+    Private = 2
+    Expired = -1
+    Failed = -2
 
 
 class TradingTypeEnum(str, Enum):
@@ -44,15 +44,15 @@ class IntervalEnum(str, Enum):
 
 
 IntervalEnum.MIN_1.__doc__ = "1 Minute"
-IntervalEnum.MIN_3.__doc__ = "3 Minute"
-IntervalEnum.MIN_5.__doc__ = "5 Minute"
-IntervalEnum.MIN_15.__doc__ = "15 Minute"
-IntervalEnum.MIN_30.__doc__ = "30 Minute"
+IntervalEnum.MIN_3.__doc__ = "3 Minutes"
+IntervalEnum.MIN_5.__doc__ = "5 Minutes"
+IntervalEnum.MIN_15.__doc__ = "15 Minutes"
+IntervalEnum.MIN_30.__doc__ = "30 Minutes"
 IntervalEnum.HOUR_1.__doc__ = "1 Hour (60 min)"
-IntervalEnum.HOUR_2.__doc__ = "2 Hour (120 min)"
-IntervalEnum.HOUR_4.__doc__ = "4 Hour (240 min)"
-IntervalEnum.HOUR_6.__doc__ = "6 Hour (360 min)"
-IntervalEnum.HOUR_12.__doc__ = "12 Hour (720 min)"
+IntervalEnum.HOUR_2.__doc__ = "2 Hours (120 min)"
+IntervalEnum.HOUR_4.__doc__ = "4 Hours (240 min)"
+IntervalEnum.HOUR_6.__doc__ = "6 Hours (360 min)"
+IntervalEnum.HOUR_12.__doc__ = "12 Hours (720 min)"
 IntervalEnum.DAY_1.__doc__ = "1 Day"
 IntervalEnum.WEEK_1.__doc__ = "1 Week"
 IntervalEnum.MONTH_1.__doc__ = "1 Month"

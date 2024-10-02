@@ -49,8 +49,6 @@ class ChannelIdentifierModel(BaseModel):
 
 class ChannelChangeModel(ChannelIdentifierModel):
     name: str = 'Default Channel'
-    type: enum.ChannelTypeEnum
-    channel: str
 
     def to_mongodb(self):
         data = super().to_mongodb()
