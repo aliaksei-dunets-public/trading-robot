@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 import time
 import math
 import logging
+import httpx
+import json
 
-from app.core.config import consts
+from app.core.config import consts, logging
 import app.models.main as model
 import app.models.enum as enum
 
@@ -14,12 +16,28 @@ class ExceptionApi(Exception):
     pass
 
 
+class RequestAsync():
+    async def get(self, url: str, params=None):
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url=url, params=params)
+
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            message = f"[{self.__class__.__name__}]: GET - {
+                url}({params}) -> {response.text}"
+            logger.error(message)
+            raise ExceptionApi(message)
+
+
 class ApiBase:
 
     BATCH_SIZE = 1000
 
     def __init__(self, trader_model: model.TraderModel):
         self._trader_model = trader_model
+        self._request_async = RequestAsync()
 
     @staticmethod
     def getUnixTimeMsByDatetime(original_datetime: datetime) -> int:

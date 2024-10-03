@@ -3,28 +3,28 @@ TradingRobot/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py
-│   ├── models/
+│   ├── api/
 │   │   ├── __init__.py
-│   │   ├── enum.py
-│   │   ├── complex.py
-│   │   └── main.py
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   ├── complex.py
-│   │   ├── main.py
-│   ├── handlers/
-│   │   ├── __init__.py
-│   │   ├── handlers.py
-│   ├── graphql/
-│   │   ├── __init__.py
-│   │   ├── queries.py
-│   │   └── mutations.py
-│   ├── db/
-│   │   ├── __init__.py
-│   │   └── database.py
+│   │   ├── common.py
+│   │   └── dzengi_com.py
 │   ├── core/
 │   │   ├── __init__.py
 │   │   └── config.py
+│   ├── db/
+│   │   ├── __init__.py
+│   │   └── database.py
+│   ├── graphql/
+│   │   ├── __init__.py
+│   │   ├── mutations.py
+│   │   ├── queries.py
+│   │   └── schemas.py
+│   ├── handlers/
+│   │   ├── __init__.py
+│   │   ├── handlers.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── enum.py
+│   │   └── main.py
 │   └── utils/
 │       ├── __init__.py
 │       └── helpers.py
@@ -35,5 +35,6 @@ TradingRobot/
 │   └── ... (more tests)
 │
 ├── .env
+├── pytest.ini
 ├── requirements.txt
 └── README.md

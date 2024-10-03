@@ -220,28 +220,37 @@ class UserHandler:
 
 class ExchangeHandler:
     def __init__(self, trader_id: str):
+        self.__trader_id = trader_id
         self.__api: ApiBase = None
-        self.__trader_mdl: model.TraderModel = TraderHandler().get_trader(trader_id)
-
-        if not self.__trader_mdl or not self.__trader_mdl.exchange_id:
-            raise ExceptionHandler(
-                f"[{self.__class__.__name__}]: __init__ - Exchange Id is missed for Trader: {trader_id}")
+        self.__trader_mdl: model.TraderModel = None
 
     def get_trader_id(self) -> str:
-        return self.__trader_mdl.id
+        return self.__trader_id
 
-    def get_trader_model(self) -> model.TraderModel:
+    async def get_trader_model(self) -> model.TraderModel:
+        if not self.__trader_mdl:
+            self.__trader_mdl = await TraderHandler().get_trader(self.__trader_id)
+
+            if not self.__trader_mdl or not self.__trader_mdl.exchange_id:
+                raise ExceptionHandler(
+                    f"[{self.__class__.__name__}]: __init__ - Exchange Id is missed for Trader: {self.__trader_id}")
+
         return self.__trader_mdl
 
-    def get_api(self) -> ApiBase:
+    async def get_api(self) -> ApiBase:
+
         if not self.__api:
-            if self.__trader_mdl.exchange_id == enum.ExchangeIdEnum.dzengi_com:
-                self.__api = ApiDzengiCom(trader_model=self.__trader_mdl)
-            elif self.__trader_mdl.exchange_id == enum.ExchangeIdEnum.demo_dzengi_com:
-                self.__api = ApiDemoDzengiCom(trader_model=self.__trader_mdl)
+
+            trader_mdl: model.TraderModel = await self.get_trader_model()
+            exchange_id = trader_mdl.exchange_id
+
+            if exchange_id == enum.ExchangeIdEnum.dzengi_com:
+                self.__api = ApiDzengiCom(trader_mdl)
+            elif exchange_id == enum.ExchangeIdEnum.demo_dzengi_com:
+                self.__api = ApiDemoDzengiCom(trader_mdl)
             else:
                 raise ExceptionHandler(
-                    f"[{self.__class__.__name__}]: __init__ - API implementation is missed for Exchange Id: {self.__trader_mdl.exchange_id}")
+                    f"[{self.__class__.__name__}]: __init__ - API implementation is missed for Exchange Id: {exchange_id}")
 
         return self.__api
 
@@ -252,23 +261,23 @@ class SymbolHandler():
         self._buffer_symbols: BufferBaseHandler = BufferBaseHandler()
         self._buffer_timeframes: BufferBaseHandler = BufferBaseHandler()
 
-    def get_symbol(self, symbol: str) -> model.SymbolModel:
+    async def get_symbol(self, symbol: str) -> model.SymbolModel:
         try:
-            symbol_model = self.get_symbols()[symbol]
+            symbol_model = await self.get_symbols()[symbol]
         except KeyError:
             raise ExceptionHandler(
                 f"[{self.__class__.__name__}]: get_symbol - Symbol: {symbol} is not found for Trader: {self.__exchange_handler.get_trader_id()}")
         return symbol_model
 
-    def get_symbol_fee(self, symbol: str) -> float:
-        symbol_mdl = self.get_symbol(symbol)
+    async def get_symbol_fee(self, symbol: str) -> float:
+        symbol_mdl = await self.get_symbol(symbol)
         # Try to fetch fee from API and update the buffer
         if not symbol_mdl.trading_fee:
             symbol_mdl.trading_fee = self.__exchange_handler.get_api().get_symbol_fee(symbol)
 
         return symbol_mdl.trading_fee if symbol_mdl.trading_fee else 0
 
-    def get_symbols(self) -> dict[model.SymbolModel]:
+    async def get_symbols(self) -> dict[model.SymbolModel]:
         symbols = {}
 
         # If buffer data is existing -> get symbols from the buffer
@@ -277,15 +286,16 @@ class SymbolHandler():
             symbols = self._buffer_symbols.get_buffer()
         else:
             # Send a request to an API to get symbols
-            symbols = self.__exchange_handler.get_api().get_symbols()
+            api = await self.__exchange_handler.get_api()
+            symbols = await api.get_symbols()
             # Set fetched symbols to the buffer
             self._buffer_symbols.set_buffer(symbols)
 
         return symbols
 
-    def get_symbol_list(self, **kwargs) -> list[model.SymbolModel]:
+    async def get_symbol_list(self, **kwargs) -> list[model.SymbolModel]:
         symbol_list = []
-        symbol_models = self.get_symbols()
+        symbol_models = await self.get_symbols()
 
         symbol = kwargs.get(consts.MODEL_FIELD_SYMBOL, None)
         name = kwargs.get(consts.MODEL_FIELD_NAME, None)
@@ -305,3 +315,34 @@ class SymbolHandler():
                 symbol_list.append(symbol_model)
 
         return sorted(symbol_list, key=lambda x: x.symbol)
+
+
+class SingletonRuntimeHandler:
+    _instance = None
+
+    def __new__(class_, *args, **kwargs):
+        if not isinstance(class_._instance, class_):
+            class_._instance = object.__new__(class_, *args, **kwargs)
+
+            class_.__symbol_handler_buffer = BufferBaseHandler()
+            # class_.__history_data_handler = {}
+            # class_.__signal_handler = BufferSingleDictionary()
+            # class_.__interval_handler = {}
+            # class_.__user_handler = UserHandler()
+            # class_.__trader_handler = TraderHandler()
+            # class_.__job_handler = BufferSingleDictionary()
+
+        return class_._instance
+
+    def get_symbol_handler(self, trader_id: str):
+        symbol_handler = self.__symbol_handler_buffer.get_from_buffer(
+            key=trader_id)
+        if not symbol_handler:
+            symbol_handler = SymbolHandler(trader_id)
+            self.__symbol_handler_buffer.set_data_to_buffer(
+                key=trader_id, data=symbol_handler)
+
+        return symbol_handler
+
+
+singleton_runtime = SingletonRuntimeHandler()

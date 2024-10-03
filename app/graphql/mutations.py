@@ -1,5 +1,5 @@
 import graphene
-import app.schemas.main as schema
+import app.graphql.schemas as schema
 import app.models.main as model
 import app.handlers.handlers as handler
 

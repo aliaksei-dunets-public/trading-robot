@@ -1,6 +1,3 @@
-import requests
-import json
-
 from app.api.common import ApiBase, ExceptionApi, logger
 from app.core.config import consts
 import app.models.main as model
@@ -63,7 +60,8 @@ class ApiDzengiCom(ApiBase):
         return "https://api-adapter.backend.currency.com/api/v2/"
 
     def ping_server(self, **kwargs) -> bool:
-        response = requests.get(self._get_url(self.SERVER_TIME_ENDPOINT))
+        response = self._request_async.get(
+            self._get_url(self.SERVER_TIME_ENDPOINT))
 
         if response.status_code == 200:
             return True
@@ -72,72 +70,61 @@ class ApiDzengiCom(ApiBase):
                 f"[{self.__class__.__name__}]: ping_server - {self._trader_model.exchange_id.value} -> {response.text}")
             return False
 
-    def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
+    async def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
         symbols = {}
 
         TRADING_FEE_FIELD = "tradingFee"
         EXCHANGE_FEE_FIELD = "exchangeFee"
         QUOTE_ASSET_FIELD = "quoteAsset"
 
-        # TODO
-        # if config.get_config_value(Const.CONF_PROPERTY_API_LOG):
-        #     logger.info(
-        #         f"ExchangeApiBase: {
-        #             self._trader_model.exchange_id.value} - getSymbols()"
-        #     )
-
         # Get data about Symbols from API
-        response = requests.get(self._get_url(
-            self.EXCHANGE_INFORMATION_ENDPOINT))
+        response_data = await self._request_async.get(self._get_url(self.EXCHANGE_INFORMATION_ENDPOINT))
 
-        if response.status_code == 200:
-            json_api_response = json.loads(response.text)
+        # Create an instance of Symbol and add to the list
+        for row in response_data["symbols"]:
+            if (
+                row[QUOTE_ASSET_FIELD] == "USD"
+                and row["assetType"]
+                in ["CRYPTOCURRENCY", "EQUITY", "COMMODITY", "CURRENCY"]
+                and "REGULAR" in row["marketModes"]
+            ):
+                # Symbol Status
+                status_converted = (
+                    enum.SymbolStatusEnum.OPEN
+                    if row[consts.MODEL_FIELD_STATUS] == "TRADING"
+                    else enum.SymbolStatusEnum.CLOSE
+                )
 
-            # Create an instance of Symbol and add to the list
-            for row in json_api_response["symbols"]:
-                if (
-                    row[QUOTE_ASSET_FIELD] == "USD"
-                    and row["assetType"]
-                    in ["CRYPTOCURRENCY", "EQUITY", "COMMODITY", "CURRENCY"]
-                    and "REGULAR" in row["marketModes"]
-                ):
-                    status_converted = (
-                        enum.SymbolStatusEnum.OPEN
-                        if row[consts.MODEL_FIELD_STATUS] == "TRADING"
-                        else enum.SymbolStatusEnum.CLOSE
-                    )
-
-                    if TRADING_FEE_FIELD in row and row[TRADING_FEE_FIELD]:
-                        trading_fee = row[TRADING_FEE_FIELD]
-                    elif EXCHANGE_FEE_FIELD in row and row[EXCHANGE_FEE_FIELD]:
-                        trading_fee = row[EXCHANGE_FEE_FIELD]
-                    else:
-                        trading_fee = 0
-
-                    symbol_data = {
-                        consts.MODEL_FIELD_SYMBOL: row[consts.MODEL_FIELD_SYMBOL],
-                        consts.MODEL_FIELD_NAME: row[consts.MODEL_FIELD_NAME],
-                        consts.MODEL_FIELD_STATUS: status_converted,
-                        consts.MODEL_FIELD_TYPE: row["marketType"],
-                        "trading_time": row["tradingHours"],
-                        "currency": row[QUOTE_ASSET_FIELD],
-                        "quote_precision": row["quotePrecision"],
-                        "trading_fee": trading_fee,
-                    }
-
-                    symbol_mdl = model.SymbolModel(**symbol_data)
-
-                    symbols[symbol_mdl.symbol] = symbol_mdl
+                # Trading Fee
+                if TRADING_FEE_FIELD in row and row[TRADING_FEE_FIELD]:
+                    trading_fee = row[TRADING_FEE_FIELD]
+                elif EXCHANGE_FEE_FIELD in row and row[EXCHANGE_FEE_FIELD]:
+                    trading_fee = row[EXCHANGE_FEE_FIELD]
                 else:
-                    continue
+                    trading_fee = 0
 
-            return symbols
+                # Symbol Type
+                symbol_type = enum.TradingTypeEnum.LEVERAGE.value if row[
+                    "marketType"] == enum.TradingTypeEnum.LEVERAGE.name else enum.TradingTypeEnum.SPOT.value
 
-        else:
-            message = f"[{self.__class__.__name__}]: get_symbols - {
-                self._trader_model.exchange_id.value} -> {response.text}"
-            logger.error(message)
-            raise ExceptionApi(message)
+                symbol_data = {
+                    consts.MODEL_FIELD_SYMBOL: row[consts.MODEL_FIELD_SYMBOL],
+                    consts.MODEL_FIELD_NAME: row[consts.MODEL_FIELD_NAME],
+                    consts.MODEL_FIELD_STATUS: status_converted,
+                    consts.MODEL_FIELD_TYPE: symbol_type,
+                    "trading_time": row["tradingHours"],
+                    "currency": row[QUOTE_ASSET_FIELD],
+                    "quote_precision": row["quotePrecision"],
+                    "trading_fee": trading_fee,
+                }
+
+                symbol_mdl = model.SymbolModel(**symbol_data)
+
+                symbols[symbol_mdl.symbol] = symbol_mdl
+            else:
+                continue
+
+        return symbols
 
 
 class ApiDemoDzengiCom(ApiDzengiCom):

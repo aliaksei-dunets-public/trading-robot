@@ -12,7 +12,7 @@ SymbolStatusGrapheneEnum = Enum.from_enum(enum.SymbolStatusEnum)
 TradingTypeGrapheneEnum = Enum.from_enum(enum.TradingTypeEnum)
 
 
-class SymbolInput(PydanticInputObjectType):
+class SymbolType(PydanticObjectType):
     class Meta:
         model = model.SymbolModel
     status = SymbolStatusGrapheneEnum()
