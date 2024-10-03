@@ -1,5 +1,5 @@
 import graphene
-import app.schemas.complex as schema
+import app.schemas.main as schema
 import app.handlers.handlers as handler
 
 
@@ -15,6 +15,10 @@ class Query(graphene.ObjectType):
     trader = graphene.Field(
         schema.TraderComplexType, trader_id=graphene.String(required=True))
     traders = graphene.List(schema.TraderComplexType)
+
+    # symbol = graphene.Field(
+    #     schema.SymbolInput, trader_id=graphene.String(required=True), symbol=graphene.String(required=True))
+    # symbols = graphene.List(schema.SymbolInput, trader_id=graphene.String(required=True))
 
     async def resolve_user(parent, info, user_id):
         return await handler.UserHandler().get_user(user_id=user_id)
@@ -33,3 +37,9 @@ class Query(graphene.ObjectType):
 
     async def resolve_traders(parent, info):
         return await handler.TraderHandler().get_traders()
+
+    # async def resolve_symbol(parent, info, trader_id, symbol):
+    #     return await handler.SymbolHandler(trader_id).get_symbol(symbol)
+
+    # async def resolve_symbols(parent, info, trader_id):
+    #     return await handler.SymbolHandler(trader_id).get_symbol_list()

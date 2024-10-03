@@ -64,6 +64,9 @@ class ApiBase:
     def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
         pass
 
+    def get_symbol_fee(self, symbol: str) -> float:
+        pass
+
     def ping_server(self, **kwargs) -> bool:
         return False
 

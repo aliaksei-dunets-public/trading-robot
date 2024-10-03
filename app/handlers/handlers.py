@@ -2,12 +2,45 @@ from app.core.config import consts
 import app.models.main as model
 import app.models.enum as enum
 from app.db.database import MongoDB
-from api.common import ApiBase
-from api.dzengi_com import ApiDzengiCom, ApiDemoDzengiCom
+from app.api.common import ApiBase
+from app.api.dzengi_com import ApiDzengiCom, ApiDemoDzengiCom
 
 
 class ExceptionHandler(Exception):
     pass
+
+
+class BufferBaseHandler:
+    def __init__(self):
+        self._buffer = {}
+
+    def get_buffer(self) -> dict:
+        return self._buffer
+
+    def get_from_buffer(self, key) -> dict:
+        if self.is_data_in_buffer(key):
+            return self._buffer[key]
+        else:
+            None
+
+    def is_buffer(self) -> bool:
+        return True if self._buffer else False
+
+    def is_data_in_buffer(self, key) -> bool:
+        return key in self._buffer
+
+    def set_buffer(self, buffer: dict):
+        if buffer:
+            self._buffer = buffer
+
+    def set_data_to_buffer(self, key, data: dict):
+        self._buffer[key] = data
+
+    def remove_from_buffer(self, key):
+        self._buffer.pop(key)
+
+    def clear_buffer(self):
+        self._buffer.clear()
 
 
 class ChannelHandler:
@@ -215,27 +248,60 @@ class ExchangeHandler:
 
 class SymbolHandler():
     def __init__(self, trader_id: str):
-        self.__api: ApiBase = ExchangeHandler(trader_id).get_api()
+        self.__exchange_handler = ExchangeHandler(trader_id)
+        self._buffer_symbols: BufferBaseHandler = BufferBaseHandler()
+        self._buffer_timeframes: BufferBaseHandler = BufferBaseHandler()
 
     def get_symbol(self, symbol: str) -> model.SymbolModel:
-        # symbol_model = self.get_symbols()[symbol]
-        # return symbol_model
-        # TODO
-        pass
+        try:
+            symbol_model = self.get_symbols()[symbol]
+        except KeyError:
+            raise ExceptionHandler(
+                f"[{self.__class__.__name__}]: get_symbol - Symbol: {symbol} is not found for Trader: {self.__exchange_handler.get_trader_id()}")
+        return symbol_model
+
+    def get_symbol_fee(self, symbol: str) -> float:
+        symbol_mdl = self.get_symbol(symbol)
+        # Try to fetch fee from API and update the buffer
+        if not symbol_mdl.trading_fee:
+            symbol_mdl.trading_fee = self.__exchange_handler.get_api().get_symbol_fee(symbol)
+
+        return symbol_mdl.trading_fee if symbol_mdl.trading_fee else 0
 
     def get_symbols(self) -> dict[model.SymbolModel]:
         symbols = {}
 
-        # # If buffer data is existing -> get symbols from the buffer
-        # if self._buffer_symbols.is_data_in_buffer():
-        #     #  Get symbols from the buffer
-        #     symbols = self._buffer_symbols.get_buffer()
-        # else:
-        #     # Send a request to an API to get symbols
-        #     symbols = self._exchange_handler.get_symbols()
-        #     # Set fetched symbols to the buffer
-        #     self._buffer_symbols.set_buffer(symbols)
-
-        symbols = self.__api.get_symbols()
+        # If buffer data is existing -> get symbols from the buffer
+        if self._buffer_symbols.is_buffer():
+            #  Get symbols from the buffer
+            symbols = self._buffer_symbols.get_buffer()
+        else:
+            # Send a request to an API to get symbols
+            symbols = self.__exchange_handler.get_api().get_symbols()
+            # Set fetched symbols to the buffer
+            self._buffer_symbols.set_buffer(symbols)
 
         return symbols
+
+    def get_symbol_list(self, **kwargs) -> list[model.SymbolModel]:
+        symbol_list = []
+        symbol_models = self.get_symbols()
+
+        symbol = kwargs.get(consts.MODEL_FIELD_SYMBOL, None)
+        name = kwargs.get(consts.MODEL_FIELD_NAME, None)
+        status = kwargs.get(consts.MODEL_FIELD_STATUS, None)
+        type = kwargs.get(consts.MODEL_FIELD_TYPE, None)
+
+        for symbol_model in symbol_models.values():
+            if symbol and symbol != symbol_model.symbol:
+                continue
+            if name and name.lower() not in symbol_model.name.lower():
+                continue
+            if status and status != symbol_model.status:
+                continue
+            if type and type != symbol_model.type:
+                continue
+            else:
+                symbol_list.append(symbol_model)
+
+        return sorted(symbol_list, key=lambda x: x.symbol)

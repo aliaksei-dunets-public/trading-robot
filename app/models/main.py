@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, validator
+from typing import List
 
 from app.core.config import consts
 import app.models.enum as enum
@@ -52,6 +53,7 @@ class TraderSymbolIntervalLimitParamModel(TraderIdModel, SymbolIntervalLimitPara
 ################## Parameters models #######################
 
 
+################## Main models #############################
 class AdminModel(BaseModel):
     created_at: datetime = None
     changed_at: datetime = None
@@ -178,3 +180,21 @@ class UserCreateModel(UserChangeModel, ChannelIdentifierModel):
 
 class UserModel(IdentifierModel, UserChangeModel, AdminModel):
     pass
+
+################## Main models #############################
+
+################## Complex models ##########################
+
+
+class UserComplexModel(UserModel):
+    channels: List[ChannelModel]
+    traders: List[TraderModel]
+
+
+class ChannelComplexModel(ChannelModel):
+    user: UserModel = None
+
+
+class TraderComplexModel(TraderModel):
+    user: UserModel = None
+################## Complex models ##########################

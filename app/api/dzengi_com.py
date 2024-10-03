@@ -1,7 +1,7 @@
 import requests
 import json
 
-from api.common import ApiBase, ExceptionApi, logger
+from app.api.common import ApiBase, ExceptionApi, logger
 from app.core.config import consts
 import app.models.main as model
 import app.models.enum as enum
