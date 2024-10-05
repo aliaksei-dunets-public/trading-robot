@@ -33,6 +33,7 @@ class RequestAsync():
 
 class ApiBase:
 
+    DEFAULT_FEE = 0.0001
     BATCH_SIZE = 1000
 
     def __init__(self, trader_model: model.TraderModel):
@@ -79,13 +80,21 @@ class ApiBase:
 
         return math.ceil(delta.total_seconds() / 3600)
 
-    def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
+    def get_end_datetime(self, interval: str, **kwargs) -> datetime:
+        pass
+        # TODO
+
+    def get_history_data(self, hd_param: model.HistoryDataParamModel, **kwargs) -> model.HistoryDataModel:
+        pass
+        # TODO
+
+    async def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
         pass
 
-    def get_symbol_fee(self, symbol: str) -> float:
-        pass
+    async def get_symbol_fee(self, symbol: str) -> float:
+        return self.DEFAULT_FEE
 
-    def ping_server(self, **kwargs) -> bool:
+    async def ping_server(self, **kwargs) -> bool:
         return False
 
     def get_endpoint(self) -> str:

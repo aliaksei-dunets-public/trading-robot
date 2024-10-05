@@ -5,7 +5,10 @@ from app.models.main import (
     IdentifierModel,
     SymbolIdModel,
     IntervalIdModel,
+    SymbolIntervalLimitParamModel,
+    TraderSymbolIntervalLimitParamModel,
     AdminModel,
+    SymbolModel,
     ChannelIdentifierModel,
     ChannelChangeModel,
     ChannelCreateModel,
@@ -17,7 +20,7 @@ from app.models.main import (
     UserCreateModel,
     UserModel
 )
-from app.models.enum import IntervalEnum, ChannelTypeEnum, TraderStatusEnum, ExchangeIdEnum
+from app.models.enum import IntervalEnum, ChannelTypeEnum, TraderStatusEnum, ExchangeIdEnum, SymbolStatusEnum, TradingTypeEnum
 from app.core.config import consts
 
 
@@ -45,6 +48,29 @@ def test_interval_id_model():
     model = IntervalIdModel(interval=IntervalEnum.MIN_1)
     assert model.interval == IntervalEnum.MIN_1
 
+################## Param models #######################
+
+
+def test_symbol_interval_limit_param_model():
+    model = SymbolIntervalLimitParamModel(
+        symbol="AAPL", interval=IntervalEnum.HOUR_1, limit=100)
+    assert model.symbol == "AAPL"
+    assert model.interval == IntervalEnum.HOUR_1
+    assert model.limit == 100
+
+    model.set_limit(200)
+    assert model.limit == 200
+
+
+def test_trader_symbol_interval_limit_param_model():
+    model = TraderSymbolIntervalLimitParamModel(
+        trader_id="123", symbol="AAPL", interval=IntervalEnum.HOUR_1, limit=50
+    )
+    assert model.trader_id == "123"
+    assert model.symbol == "AAPL"
+    assert model.interval == IntervalEnum.HOUR_1
+    assert model.limit == 50
+
 ################## Admin Model #######################
 
 
@@ -53,6 +79,66 @@ def test_admin_model():
     model = AdminModel(created_at=now, changed_at=now)
     assert model.created_at == now
     assert model.changed_at == now
+
+################## Symbol Model #######################
+
+
+def test_symbol_model():
+    model = SymbolModel(
+        symbol="BTC",
+        name="Bitcoin",
+        status=SymbolStatusEnum.OPEN,
+        type=TradingTypeEnum.SPOT,
+        currency="USD",
+        quote_precision=2,
+        trading_fee=0.1,
+        trading_time="24/7"
+    )
+    # Check if descr is calculated correctly
+    assert model.symbol == "BTC"
+    assert model.name == "Bitcoin"
+    assert model.descr == "Bitcoin (BTC)"
+    assert model.status == SymbolStatusEnum.OPEN
+    assert model.type == TradingTypeEnum.SPOT
+    assert model.currency == "USD"
+    assert model.quote_precision == 2
+    assert model.trading_fee == 0.1
+    assert model.trading_time == "24/7"
+
+    model2 = SymbolModel(
+        symbol="BTC",
+        name="BTC",
+        status=SymbolStatusEnum.OPEN,
+        type=TradingTypeEnum.SPOT,
+        currency="USD",
+        quote_precision=2,
+        trading_fee=0.1,
+        trading_time="24/7"
+    )
+    # Check if descr is calculated correctly
+    assert model2.descr == "BTC"
+
+    with pytest.raises(ValidationError):
+        SymbolModel(
+            symbol="LTC",
+            name="Litecoin",
+            type=TradingTypeEnum.SPOT,
+            currency="USD",
+            quote_precision=2,
+            trading_fee=0.2,
+            trading_time="24/7"
+        )
+
+    with pytest.raises(ValidationError):
+        SymbolModel(
+            symbol="LTC",
+            name="Litecoin",
+            status=SymbolStatusEnum.OPEN,
+            currency="USD",
+            quote_precision=2,
+            trading_fee=0.2,
+            trading_time="24/7"
+        )
 
 ################## Channel Models #######################
 

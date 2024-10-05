@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.core.config import consts
 import app.models.main as model
 import app.models.enum as enum
@@ -27,7 +29,7 @@ class BufferBaseHandler:
         return True if self._buffer else False
 
     def is_data_in_buffer(self, key) -> bool:
-        return key in self._buffer
+        return True if key and key in self._buffer else False
 
     def set_buffer(self, buffer: dict):
         if buffer:
@@ -41,6 +43,51 @@ class BufferBaseHandler:
 
     def clear_buffer(self):
         self._buffer.clear()
+
+
+class BufferHistoryDataHandler(BufferBaseHandler):
+    def get_from_buffer(self, hd_param: model.HistoryDataParamModel, **kwargs) -> model.HistoryDataModel:
+        end_datetime = kwargs.get(consts.MODEL_FIELD_END_DATETIME)
+        buffer_key = self.__get_buffer_key(
+            symbol=hd_param.symbol, interval=hd_param.interval)
+
+        # If history data is not required from buffer and the buffer data doesn't exist -> None
+        if not hd_param.buffer or not self.is_data_in_buffer(key=buffer_key):
+            return None
+
+        # Get history data from buffer
+        hd_mdl_buffer: model.HistoryDataModel = self._buffer[buffer_key]
+
+        # If required limit and end_datetime is fitted with buffer history data
+        if (hd_param.limit <= hd_mdl_buffer.limit and end_datetime and end_datetime <= hd_mdl_buffer.end_datetime):
+            # Buffered history data Dataframe
+            df_buffer = hd_mdl_buffer.data
+            # Required DataFrame based on end_datetime
+            df_required = df_buffer[df_buffer.index <= end_datetime]
+            # Required DataFrame based on limit
+            df_required = df_required.tail(hd_param.limit)
+
+            return model.HistoryDataModel(
+                symbol=hd_param.symbol, interval=hd_param.interval, limit=hd_param.limit, data=df_required)
+
+        else:
+            return None
+
+    def set_buffer(self, buffer: model.HistoryDataModel):
+        if buffer:
+            buffer_key = self.__get_buffer_key(
+                symbol=buffer.symbol, interval=buffer.interval)
+
+            self._buffer[buffer_key] = buffer
+
+    def __get_buffer_key(self, symbol: str, interval: enum.IntervalEnum) -> tuple:
+        if not symbol or not interval:
+            ExceptionHandler(
+                f"[{self.__class__.__name__}]: get_buffer_key - History Data buffer key is invalid: symbol: {
+                    symbol}, interval: {interval.value}"
+            )
+
+        return (symbol, interval.value)
 
 
 class ChannelHandler:
@@ -273,9 +320,11 @@ class SymbolHandler():
         symbol_mdl = await self.get_symbol(symbol)
         # Try to fetch fee from API and update the buffer
         if not symbol_mdl.trading_fee:
-            symbol_mdl.trading_fee = self.__exchange_handler.get_api().get_symbol_fee(symbol)
+            api = await self.__exchange_handler.get_api()
+            trading_fee = await api.get_symbol_fee(symbol)
+            symbol_mdl.trading_fee = trading_fee if trading_fee else api.DEFAULT_FEE
 
-        return symbol_mdl.trading_fee if symbol_mdl.trading_fee else 0
+        return symbol_mdl.trading_fee
 
     async def get_symbols(self) -> dict[model.SymbolModel]:
         symbols = {}
@@ -316,6 +365,39 @@ class SymbolHandler():
 
         return sorted(symbol_list, key=lambda x: x.symbol)
 
+    async def is_available(self, interval: enum.IntervalEnum, symbol: str) -> bool:
+        pass
+        # TODO
+
+
+class HistoryDataHandler():
+    def __init__(self, trader_id: str):
+        self._exchange_handler: ExchangeHandler = ExchangeHandler(trader_id)
+        self._buffer_hd: BufferHistoryDataHandler = BufferHistoryDataHandler()
+
+    async def get_history_data(self, hd_param: model.HistoryDataParamModel, **kwargs) -> model.HistoryDataModel:
+        hd_mdl = None
+
+        api = await self._exchange_handler.get_api()
+
+        # Get Current end_datetime for History Data
+        current_end_datetime = api.get_end_datetime(
+            interval=hd_param.interval, closed=hd_param.closed)
+
+        # Get history data from buffer if it's required and the buffer exists for the current datetime
+        hd_mdl = self._buffer_hd.get_from_buffer(
+            hd_param=hd_param, end_datetime=current_end_datetime)
+
+        # If history data from the buffer doesn't exist
+        if not hd_mdl:
+            # Send a request to an API to get history data
+            hd_mdl = api.get_history_data(hd_param=hd_param)
+
+            # Set fetched history data to the buffer
+            self._buffer_hd.set_buffer(hd_mdl)
+
+        return hd_mdl
+
 
 class SingletonRuntimeHandler:
     _instance = None
@@ -325,7 +407,7 @@ class SingletonRuntimeHandler:
             class_._instance = object.__new__(class_, *args, **kwargs)
 
             class_.__symbol_handler_buffer = BufferBaseHandler()
-            # class_.__history_data_handler = {}
+            class_.__hd_handler_buffer = BufferBaseHandler()
             # class_.__signal_handler = BufferSingleDictionary()
             # class_.__interval_handler = {}
             # class_.__user_handler = UserHandler()
@@ -334,7 +416,7 @@ class SingletonRuntimeHandler:
 
         return class_._instance
 
-    def get_symbol_handler(self, trader_id: str):
+    def get_symbol_handler(self, trader_id: str) -> SymbolHandler:
         symbol_handler = self.__symbol_handler_buffer.get_from_buffer(
             key=trader_id)
         if not symbol_handler:
@@ -343,6 +425,19 @@ class SingletonRuntimeHandler:
                 key=trader_id, data=symbol_handler)
 
         return symbol_handler
+
+    def get_hd_handler(self, trader_id: str) -> HistoryDataHandler:
+        hd_handler = self.__hd_handler_buffer.get_from_buffer(key=trader_id)
+        if not hd_handler:
+            hd_handler = HistoryDataHandler(trader_id)
+            self.__hd_handler_buffer.set_data_to_buffer(
+                key=trader_id, data=hd_handler)
+
+        return hd_handler
+
+    def refresh(self):
+        self.__symbol_handler_buffer.clear_buffer()
+        self.__hd_handler_buffer.clear_buffer()
 
 
 singleton_runtime = SingletonRuntimeHandler()

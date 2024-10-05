@@ -28,6 +28,10 @@ class Constants(BaseModel):
     MODEL_FIELD_API_KEY = "api_key"
     MODEL_FIELD_API_SECRET = "api_secret"
     MODEL_FIELD_SYMBOL = "symbol"
+    MODEL_FIELD_END_DATETIME = "end_datetime"
+    MODEL_FIELD_DATA = "data"
+    MODEL_FIELD_CLOSED = "closed"
+    MODEL_FIELD_BUFFER = "buffer"
 
 
 class Settings(BaseSettings):

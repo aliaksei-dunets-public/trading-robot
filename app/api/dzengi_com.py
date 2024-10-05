@@ -59,15 +59,11 @@ class ApiDzengiCom(ApiBase):
     def get_endpoint(self) -> str:
         return "https://api-adapter.backend.currency.com/api/v2/"
 
-    def ping_server(self, **kwargs) -> bool:
-        response = self._request_async.get(
-            self._get_url(self.SERVER_TIME_ENDPOINT))
-
-        if response.status_code == 200:
+    async def ping_server(self, **kwargs) -> bool:
+        try:
+            await self._request_async.get(self._get_url(self.SERVER_TIME_ENDPOINT))
             return True
-        else:
-            logger.error(
-                f"[{self.__class__.__name__}]: ping_server - {self._trader_model.exchange_id.value} -> {response.text}")
+        except ExceptionApi:
             return False
 
     async def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:

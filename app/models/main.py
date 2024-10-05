@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, computed_field
 from typing import List
+import pandas as pd
 
 from app.core.config import consts
 import app.models.enum as enum
@@ -10,7 +11,7 @@ from app.utils.helpers import EncryptionTool
 
 
 class IdentifierModel(BaseModel):
-    id: str = Field(alias="_id", default=None)
+    id: str = Field(alias=consts.DB_FIELD_ID, default=None)
 
     @validator("id", pre=True, always=True)
     def convert_id_to_str(cls, value):
@@ -20,7 +21,7 @@ class IdentifierModel(BaseModel):
 class SymbolIdModel(BaseModel):
     symbol: str
 
-    @validator("symbol")
+    @validator(consts.MODEL_FIELD_SYMBOL)
     def check_symbol(cls, value):
         if not value or value == "null":
             raise ValueError("The symbol is missed")
@@ -50,6 +51,25 @@ class SymbolIntervalLimitParamModel(SymbolIdModel, IntervalIdModel):
 class TraderSymbolIntervalLimitParamModel(TraderIdModel, SymbolIntervalLimitParamModel):
     pass
 
+
+class HistoryDataParamModel(SymbolIntervalLimitParamModel):
+    buffer: bool = True
+    closed: bool = False
+
+    @validator(consts.MODEL_FIELD_BUFFER, pre=True, always=True)
+    def convert_buffer(cls, value):
+        return cls.convert_to_bool(value)
+
+    @validator(consts.MODEL_FIELD_CLOSED, pre=True, always=True)
+    def convert_closed(cls, value):
+        return cls.convert_to_bool(value)
+
+    def convert_to_bool(value):
+        if type(value) == bool:
+            return value
+        elif type(value) == str:
+            return bool(value.lower() == "true")
+
 ################## Parameters models #######################
 
 
@@ -78,6 +98,19 @@ class SymbolModel(SymbolIdModel):
         else:
             descr = symbol
         return descr
+
+
+class HistoryDataModel(SymbolIntervalLimitParamModel):
+    data: pd.DataFrame
+
+    # Comptuted field for END_DATETIME calculated form History DataFrame
+    @computed_field
+    def end_datetime(self) -> datetime:
+        return self.data.index[-1]
+
+    class Config:
+        # This is a workaround for DataFrame type
+        arbitrary_types_allowed = True
 
 
 class ChannelIdentifierModel(BaseModel):
@@ -124,7 +157,7 @@ class TraderChangeModel(BaseModel):
     api_key: str = ""
     api_secret: str = ""
 
-    @validator("expired_dt")
+    @validator(consts.MODEL_FIELD_EXPIRED_DT)
     def check_expired_dt(cls, value_dt):
         if value_dt <= datetime.now():
             raise ValueError("The expired datetime is invalid")
