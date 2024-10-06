@@ -1,7 +1,7 @@
 from app.api.common import ApiBase, ExceptionApi, logger
 from app.core.config import consts
-import app.models.main as model
-import app.models.enum as enum
+import app.models.models as models
+import app.models.enums as enums
 
 
 class ApiDzengiCom(ApiBase):
@@ -66,7 +66,7 @@ class ApiDzengiCom(ApiBase):
         except ExceptionApi:
             return False
 
-    async def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
+    async def get_symbols(self, **kwargs) -> dict[models.SymbolModel]:
         symbols = {}
 
         TRADING_FEE_FIELD = "tradingFee"
@@ -86,9 +86,9 @@ class ApiDzengiCom(ApiBase):
             ):
                 # Symbol Status
                 status_converted = (
-                    enum.SymbolStatusEnum.OPEN
+                    enums.SymbolStatusEnum.OPEN
                     if row[consts.MODEL_FIELD_STATUS] == "TRADING"
-                    else enum.SymbolStatusEnum.CLOSE
+                    else enums.SymbolStatusEnum.CLOSE
                 )
 
                 # Trading Fee
@@ -100,8 +100,8 @@ class ApiDzengiCom(ApiBase):
                     trading_fee = 0
 
                 # Symbol Type
-                symbol_type = enum.TradingTypeEnum.LEVERAGE.value if row[
-                    "marketType"] == enum.TradingTypeEnum.LEVERAGE.name else enum.TradingTypeEnum.SPOT.value
+                symbol_type = enums.TradingTypeEnum.LEVERAGE.value if row[
+                    "marketType"] == enums.TradingTypeEnum.LEVERAGE.name else enums.TradingTypeEnum.SPOT.value
 
                 symbol_data = {
                     consts.MODEL_FIELD_SYMBOL: row[consts.MODEL_FIELD_SYMBOL],
@@ -114,7 +114,7 @@ class ApiDzengiCom(ApiBase):
                     "trading_fee": trading_fee,
                 }
 
-                symbol_mdl = model.SymbolModel(**symbol_data)
+                symbol_mdl = models.SymbolModel(**symbol_data)
 
                 symbols[symbol_mdl.symbol] = symbol_mdl
             else:

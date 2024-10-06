@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 from pydantic import ValidationError
-from app.models.main import (
+from app.models.models import (
     IdentifierModel,
     SymbolIdModel,
     IntervalIdModel,
@@ -20,7 +20,7 @@ from app.models.main import (
     UserCreateModel,
     UserModel
 )
-from app.models.enum import IntervalEnum, ChannelTypeEnum, TraderStatusEnum, ExchangeIdEnum, SymbolStatusEnum, TradingTypeEnum
+from app.models.enums import IntervalEnum, ChannelTypeEnum, TraderStatusEnum, ExchangeIdEnum, SymbolStatusEnum, TradingTypeEnum
 from app.core.config import consts
 
 
@@ -94,10 +94,10 @@ def test_symbol_model():
         trading_fee=0.1,
         trading_time="24/7"
     )
-    # Check if descr is calculated correctly
+    # Check if description is calculated correctly
     assert model.symbol == "BTC"
     assert model.name == "Bitcoin"
-    assert model.descr == "Bitcoin (BTC)"
+    assert model.description == "Bitcoin (BTC)"
     assert model.status == SymbolStatusEnum.OPEN
     assert model.type == TradingTypeEnum.SPOT
     assert model.currency == "USD"
@@ -115,8 +115,8 @@ def test_symbol_model():
         trading_fee=0.1,
         trading_time="24/7"
     )
-    # Check if descr is calculated correctly
-    assert model2.descr == "BTC"
+    # Check if description is calculated correctly
+    assert model2.description == "BTC"
 
     with pytest.raises(ValidationError):
         SymbolModel(

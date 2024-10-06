@@ -1,4 +1,4 @@
-from app.models.enum import ExchangeIdEnum, TraderStatusEnum, TradingTypeEnum, IntervalEnum, ChannelTypeEnum
+from app.models.enums import ExchangeIdEnum, TraderStatusEnum, TradingTypeEnum, IntervalEnum, ChannelTypeEnum
 
 
 def test_exchange_id_enum_values():

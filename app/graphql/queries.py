@@ -1,6 +1,6 @@
 import graphene
 import app.graphql.schemas as schema
-import app.handlers.handlers as handler
+import app.handler.handlers as handler
 
 
 class Query(graphene.ObjectType):

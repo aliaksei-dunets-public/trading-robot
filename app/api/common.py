@@ -6,8 +6,8 @@ import httpx
 import json
 
 from app.core.config import consts, logging
-import app.models.main as model
-import app.models.enum as enum
+import app.models.models as models
+import app.models.enums as enums
 
 logger = logging.getLogger("api")
 
@@ -36,7 +36,7 @@ class ApiBase:
     DEFAULT_FEE = 0.0001
     BATCH_SIZE = 1000
 
-    def __init__(self, trader_model: model.TraderModel):
+    def __init__(self, trader_model: models.TraderModel):
         self._trader_model = trader_model
         self._request_async = RequestAsync()
 
@@ -84,11 +84,11 @@ class ApiBase:
         pass
         # TODO
 
-    def get_history_data(self, hd_param: model.HistoryDataParamModel, **kwargs) -> model.HistoryDataModel:
+    def get_history_data(self, hd_param: models.HistoryDataParamModel, **kwargs) -> models.HistoryDataModel:
         pass
         # TODO
 
-    async def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
+    async def get_symbols(self, **kwargs) -> dict[models.SymbolModel]:
         pass
 
     async def get_symbol_fee(self, symbol: str) -> float:
@@ -100,7 +100,7 @@ class ApiBase:
     def get_endpoint(self) -> str:
         return ""
 
-    def _map_interval(self, api_interval: str = None, interval: enum.IntervalEnum = None):
+    def _map_interval(self, api_interval: str = None, interval: enums.IntervalEnum = None):
         if api_interval:
             return interval
         elif interval:

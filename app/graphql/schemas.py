@@ -1,82 +1,82 @@
 from graphene_pydantic import PydanticObjectType, PydanticInputObjectType
 from graphene import Enum, List
 
-import app.models.main as model
-import app.models.enum as enum
-import app.handlers.handlers as handler
+import app.models.models as models
+import app.models.enums as enums
+import app.handler.handlers as handler
 
-ChannelTypeGrapheneEnum = Enum.from_enum(enum.ChannelTypeEnum)
-ExchangeIdGrapheneEnum = Enum.from_enum(enum.ExchangeIdEnum)
-TraderStatusGrapheneEnum = Enum.from_enum(enum.TraderStatusEnum)
-SymbolStatusGrapheneEnum = Enum.from_enum(enum.SymbolStatusEnum)
-TradingTypeGrapheneEnum = Enum.from_enum(enum.TradingTypeEnum)
+ChannelTypeGrapheneEnum = Enum.from_enum(enums.ChannelTypeEnum)
+ExchangeIdGrapheneEnum = Enum.from_enum(enums.ExchangeIdEnum)
+TraderStatusGrapheneEnum = Enum.from_enum(enums.TraderStatusEnum)
+SymbolStatusGrapheneEnum = Enum.from_enum(enums.SymbolStatusEnum)
+TradingTypeGrapheneEnum = Enum.from_enum(enums.TradingTypeEnum)
 
 
 class SymbolType(PydanticObjectType):
     class Meta:
-        model = model.SymbolModel
+        model = models.SymbolModel
     status = SymbolStatusGrapheneEnum()
     type = TradingTypeGrapheneEnum()
 
 
 class UserCreateInput(PydanticInputObjectType):
     class Meta:
-        model = model.UserCreateModel
+        model = models.UserCreateModel
     type = ChannelTypeGrapheneEnum()
 
 
 class UserChangeInput(PydanticInputObjectType):
     class Meta:
-        model = model.UserChangeModel
+        model = models.UserChangeModel
 
 
 class UserType(PydanticObjectType):
     class Meta:
-        model = model.UserModel
+        model = models.UserModel
 
 
 class ChannelCreateInput(PydanticInputObjectType):
     class Meta:
-        model = model.ChannelCreateModel
+        model = models.ChannelCreateModel
     type = ChannelTypeGrapheneEnum()
 
 
 class ChannelChangeInput(PydanticInputObjectType):
     class Meta:
-        model = model.ChannelChangeModel
+        model = models.ChannelChangeModel
     type = ChannelTypeGrapheneEnum()
 
 
 class ChannelType(PydanticObjectType):
     class Meta:
-        model = model.ChannelModel
+        model = models.ChannelModel
     type = ChannelTypeGrapheneEnum()
 
 
 class TraderCreateInput(PydanticInputObjectType):
     class Meta:
-        model = model.TraderCreateModel
+        model = models.TraderCreateModel
     exchange_id = ExchangeIdGrapheneEnum()
     status = TraderStatusGrapheneEnum()
 
 
 class TraderChangeInput(PydanticInputObjectType):
     class Meta:
-        model = model.TraderChangeModel
+        model = models.TraderChangeModel
     exchange_id = ExchangeIdGrapheneEnum()
     status = TraderStatusGrapheneEnum()
 
 
 class TraderType(PydanticObjectType):
     class Meta:
-        model = model.TraderModel
+        model = models.TraderModel
     exchange_id = ExchangeIdGrapheneEnum()
     status = TraderStatusGrapheneEnum()
 
 
 class ChannelComplexType(PydanticObjectType):
     class Meta:
-        model = model.ChannelComplexModel
+        model = models.ChannelComplexModel
 
     type = ChannelTypeGrapheneEnum()
 
@@ -88,7 +88,7 @@ class ChannelComplexType(PydanticObjectType):
 
 class TraderComplexType(PydanticObjectType):
     class Meta:
-        model = model.TraderComplexModel
+        model = models.TraderComplexModel
 
     exchange_id = ExchangeIdGrapheneEnum()
     status = TraderStatusGrapheneEnum()
@@ -101,7 +101,7 @@ class TraderComplexType(PydanticObjectType):
 
 class UserComplexType(PydanticObjectType):
     class Meta:
-        model = model.UserComplexModel
+        model = models.UserComplexModel
 
     channels = List(ChannelType)
     traders = List(TraderType)

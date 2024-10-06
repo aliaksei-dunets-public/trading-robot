@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field, validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field
 from typing import List
 import pandas as pd
 
 from app.core.config import consts
-import app.models.enum as enum
+import app.models.enums as enums
 from app.utils.helpers import EncryptionTool
 
 ################## ID models #######################
@@ -13,7 +13,7 @@ from app.utils.helpers import EncryptionTool
 class IdentifierModel(BaseModel):
     id: str = Field(alias=consts.DB_FIELD_ID, default=None)
 
-    @validator("id", pre=True, always=True)
+    @field_validator("id", mode="before")
     def convert_id_to_str(cls, value):
         return str(value)
 
@@ -21,7 +21,7 @@ class IdentifierModel(BaseModel):
 class SymbolIdModel(BaseModel):
     symbol: str
 
-    @validator(consts.MODEL_FIELD_SYMBOL)
+    @field_validator(consts.MODEL_FIELD_SYMBOL)
     def check_symbol(cls, value):
         if not value or value == "null":
             raise ValueError("The symbol is missed")
@@ -29,7 +29,7 @@ class SymbolIdModel(BaseModel):
 
 
 class IntervalIdModel(BaseModel):
-    interval: enum.IntervalEnum
+    interval: enums.IntervalEnum
 
 
 class TraderIdModel(BaseModel):
@@ -56,11 +56,11 @@ class HistoryDataParamModel(SymbolIntervalLimitParamModel):
     buffer: bool = True
     closed: bool = False
 
-    @validator(consts.MODEL_FIELD_BUFFER, pre=True, always=True)
+    @field_validator(consts.MODEL_FIELD_BUFFER, mode="before")
     def convert_buffer(cls, value):
         return cls.convert_to_bool(value)
 
-    @validator(consts.MODEL_FIELD_CLOSED, pre=True, always=True)
+    @field_validator(consts.MODEL_FIELD_CLOSED, mode="before")
     def convert_closed(cls, value):
         return cls.convert_to_bool(value)
 
@@ -81,23 +81,20 @@ class AdminModel(BaseModel):
 
 class SymbolModel(SymbolIdModel):
     name: str
-    descr: str = ""
-    status: enum.SymbolStatusEnum
-    type: enum.TradingTypeEnum
+    status: enums.SymbolStatusEnum
+    type: enums.TradingTypeEnum
     currency: str
     quote_precision: int
     trading_fee: float = None
     trading_time: str
 
-    @validator("descr", pre=True, always=True)
-    def concate_descr(cls, descr, values):
-        name = values.get(consts.MODEL_FIELD_NAME)
-        symbol = values.get(consts.MODEL_FIELD_SYMBOL)
-        if name and name != symbol:
-            descr = f'{name} ({symbol})'
+    # Comptuted field for description
+    @computed_field
+    def description(self) -> str:
+        if self.name and self.name != self.symbol:
+            return f'{self.name} ({self.symbol})'
         else:
-            descr = symbol
-        return descr
+            return self.symbol
 
 
 class HistoryDataModel(SymbolIntervalLimitParamModel):
@@ -114,7 +111,7 @@ class HistoryDataModel(SymbolIntervalLimitParamModel):
 
 
 class ChannelIdentifierModel(BaseModel):
-    type: enum.ChannelTypeEnum
+    type: enums.ChannelTypeEnum
     channel: str
 
     def to_mongodb(self):
@@ -151,13 +148,13 @@ class ChannelModel(IdentifierModel, ChannelCreateModel, AdminModel):
 class TraderChangeModel(BaseModel):
     user_id: str
     name: str
-    status: enum.TraderStatusEnum = enum.TraderStatusEnum.New
+    status: enums.TraderStatusEnum = enums.TraderStatusEnum.New
     expired_dt: datetime = datetime.now() + timedelta(days=365)
     default: bool = True
     api_key: str = ""
     api_secret: str = ""
 
-    @validator(consts.MODEL_FIELD_EXPIRED_DT)
+    @field_validator(consts.MODEL_FIELD_EXPIRED_DT)
     def check_expired_dt(cls, value_dt):
         if value_dt <= datetime.now():
             raise ValueError("The expired datetime is invalid")
@@ -181,7 +178,7 @@ class TraderChangeModel(BaseModel):
 
 
 class TraderCreateModel(TraderChangeModel):
-    exchange_id: enum.ExchangeIdEnum
+    exchange_id: enums.ExchangeIdEnum
 
     def to_mongodb_doc(self):
         data = super().to_mongodb()
