@@ -29,10 +29,19 @@ class Constants(BaseModel):
     MODEL_FIELD_API_KEY: str = "api_key"
     MODEL_FIELD_API_SECRET: str = "api_secret"
     MODEL_FIELD_SYMBOL: str = "symbol"
+    MODEL_FIELD_INTERVAL: str = "interval"
     MODEL_FIELD_END_DATETIME: str = "end_datetime"
     MODEL_FIELD_DATA: str = "data"
     MODEL_FIELD_CLOSED: str = "closed"
     MODEL_FIELD_BUFFER: str = "buffer"
+    MODEL_FIELD_LIMIT: str = "limit"
+
+    API_FIELD_DATETIME: str = "Datetime"
+    API_FIELD_OPEN: str = "Open"
+    API_FIELD_HIGH: str = "High"
+    API_FIELD_LOW: str = "Low"
+    API_FIELD_CLOSE: str = "Close"
+    API_FIELD_VOLUME: str = "Volume"
 
 
 class Settings(BaseSettings):

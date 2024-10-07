@@ -217,8 +217,8 @@ class UserModel(IdentifierModel, UserChangeModel, AdminModel):
 
 
 class UserComplexModel(UserModel):
-    channels: List[ChannelModel]
-    traders: List[TraderModel]
+    channels: List[ChannelModel] = None
+    traders: List[TraderModel] = None
 
 
 class ChannelComplexModel(ChannelModel):

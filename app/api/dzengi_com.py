@@ -1,7 +1,9 @@
+import pandas as pd
+
 from app.api.common import ApiBase, ExceptionApi, logger
 from app.core.config import consts
-import app.models.models as models
-import app.models.enums as enums
+import app.model.models as model
+import app.model.enums as enum
 
 
 class ApiDzengiCom(ApiBase):
@@ -56,6 +58,8 @@ class ApiDzengiCom(ApiBase):
     TA_API_INTERVAL_1D = "1d"
     TA_API_INTERVAL_1WK = "1w"
 
+    API_FLD_END_TIME = "endTime"
+
     def get_endpoint(self) -> str:
         return "https://api-adapter.backend.currency.com/api/v2/"
 
@@ -66,7 +70,7 @@ class ApiDzengiCom(ApiBase):
         except ExceptionApi:
             return False
 
-    async def get_symbols(self, **kwargs) -> dict[models.SymbolModel]:
+    async def get_symbols(self, **kwargs) -> dict[model.SymbolModel]:
         symbols = {}
 
         TRADING_FEE_FIELD = "tradingFee"
@@ -86,9 +90,9 @@ class ApiDzengiCom(ApiBase):
             ):
                 # Symbol Status
                 status_converted = (
-                    enums.SymbolStatusEnum.OPEN
+                    enum.SymbolStatusEnum.OPEN
                     if row[consts.MODEL_FIELD_STATUS] == "TRADING"
-                    else enums.SymbolStatusEnum.CLOSE
+                    else enum.SymbolStatusEnum.CLOSE
                 )
 
                 # Trading Fee
@@ -100,8 +104,8 @@ class ApiDzengiCom(ApiBase):
                     trading_fee = 0
 
                 # Symbol Type
-                symbol_type = enums.TradingTypeEnum.LEVERAGE.value if row[
-                    "marketType"] == enums.TradingTypeEnum.LEVERAGE.name else enums.TradingTypeEnum.SPOT.value
+                symbol_type = enum.TradingTypeEnum.LEVERAGE.value if row[
+                    "marketType"] == enum.TradingTypeEnum.LEVERAGE.name else enum.TradingTypeEnum.SPOT.value
 
                 symbol_data = {
                     consts.MODEL_FIELD_SYMBOL: row[consts.MODEL_FIELD_SYMBOL],
@@ -114,13 +118,55 @@ class ApiDzengiCom(ApiBase):
                     "trading_fee": trading_fee,
                 }
 
-                symbol_mdl = models.SymbolModel(**symbol_data)
+                symbol_mdl = model.SymbolModel(**symbol_data)
 
                 symbols[symbol_mdl.symbol] = symbol_mdl
             else:
                 continue
 
         return symbols
+
+    async def _get_history_dataframe(self, hd_param: model.HistoryDataParamModel, start=None, end=None, **kwargs) -> model.HistoryDataModel:
+        COLUMN_DATETIME_FLOAT = "DatetimeFloat"
+
+        # Prepare URL parameters
+        url_params = {
+            consts.MODEL_FIELD_SYMBOL: hd_param.symbol,
+            consts.MODEL_FIELD_INTERVAL: self._map_interval(interval=hd_param.interval),
+            consts.MODEL_FIELD_LIMIT: hd_param.limit,
+            self.API_FLD_END_TIME: end,
+        }
+
+        # Importing parameters price_type: bid, ask
+        # price_type = kwargs.get(Const.FLD_PRICE_TYPE, self.PRICE_TYPE_BID)
+        # url_params[Const.API_FLD_PRICE_TYPE] = price_type
+
+        # Get History Data from API
+        response_json = await self._request_async.get(self._get_url(self.KLINES_DATA_ENDPOINT), params=url_params)
+
+        # Convert API response to the DataFrame with columns: 'Datetime', 'Open', 'High', 'Low', 'Close', 'Volume'
+        df = pd.DataFrame(
+            response_json,
+            columns=[
+                COLUMN_DATETIME_FLOAT,
+                consts.API_FIELD_OPEN,
+                consts.API_FIELD_HIGH,
+                consts.API_FIELD_LOW,
+                consts.API_FIELD_CLOSE,
+                consts.API_FIELD_VOLUME,
+            ],
+        )
+        df[consts.API_FIELD_DATETIME] = df.apply(
+            lambda x: pd.to_datetime(
+                self.getDatetimeByUnixTimeMs(x[COLUMN_DATETIME_FLOAT])
+            ),
+            axis=1,
+        )
+        df.set_index(consts.API_FIELD_DATETIME, inplace=True)
+        df.drop([COLUMN_DATETIME_FLOAT], axis=1, inplace=True)
+        df = df.astype(float)
+
+        return df
 
 
 class ApiDemoDzengiCom(ApiDzengiCom):

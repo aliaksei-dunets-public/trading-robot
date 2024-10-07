@@ -18,13 +18,13 @@ TradingRobot/
 │   │   ├── mutations.py
 │   │   ├── queries.py
 │   │   └── schemas.py
-│   ├── handlers/
+│   ├── handler/
 │   │   ├── __init__.py
 │   │   ├── handlers.py
-│   ├── models/
+│   ├── model/
 │   │   ├── __init__.py
-│   │   ├── enum.py
-│   │   └── main.py
+│   │   ├── enums.py
+│   │   └── models.py
 │   └── utils/
 │       ├── __init__.py
 │       └── helpers.py

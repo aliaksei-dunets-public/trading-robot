@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from app.core.config import consts
-import app.models.models as models
-import app.models.enums as enums
+import app.model.models as model
+import app.model.enums as enum
 from app.db.database import MongoDB
 from app.api.common import ApiBase
 from app.api.dzengi_com import ApiDzengiCom, ApiDemoDzengiCom
@@ -49,21 +49,21 @@ class ChannelHandler:
     def __init__(self) -> None:
         self._db = MongoDB(consts.DB_COLLECTION_CHANNELS)
 
-    async def get_channel(self, channel_id: str) -> models.ChannelModel:
+    async def get_channel(self, channel_id: str) -> model.ChannelModel:
         data = await self._db.find_one(channel_id)
-        return models.ChannelModel(**data) if data else None
+        return model.ChannelModel(**data) if data else None
 
-    async def get_channels(self, user_id: str = None, type: enums.ChannelTypeEnum = None) -> list[models.ChannelModel]:
+    async def get_channels(self, user_id: str = None, type: enum.ChannelTypeEnum = None) -> list[model.ChannelModel]:
         query = {}
         if user_id:
             query[consts.MODEL_FIELD_USER_ID] = user_id
         if type:
             query[consts.MODEL_FIELD_TYPE] = type
         data = await self._db.find_many(query)
-        channels = [models.ChannelModel(**channel) for channel in data]
+        channels = [model.ChannelModel(**channel) for channel in data]
         return channels if channels else []
 
-    async def create_channel(self, channel: models.ChannelCreateModel) -> models.ChannelModel:
+    async def create_channel(self, channel: model.ChannelCreateModel) -> model.ChannelModel:
         exist_user = await UserHandler().get_user(channel.user_id)
         if not exist_user:
             raise ExceptionHandler(
@@ -73,7 +73,7 @@ class ChannelHandler:
         created_id = await self._db.insert_one(channel_dict)
         return await self.get_channel(created_id)
 
-    async def update_channel(self, channel_id: str, channel: models.ChannelChangeModel) -> models.ChannelModel:
+    async def update_channel(self, channel_id: str, channel: model.ChannelChangeModel) -> model.ChannelModel:
         exist_channel = await self.get_channel(channel_id)
         if not exist_channel:
             raise ExceptionHandler(
@@ -99,19 +99,19 @@ class TraderHandler:
     def __init__(self):
         self._db = MongoDB(consts.DB_COLLECTION_TRADERS)
 
-    async def get_trader(self, trader_id: str) -> models.TraderModel:
+    async def get_trader(self, trader_id: str) -> model.TraderModel:
         data = await self._db.find_one(trader_id)
-        return models.TraderModel(**data) if data else None
+        return model.TraderModel(**data) if data else None
 
-    async def get_traders(self, user_id: str = None) -> list[models.TraderModel]:
+    async def get_traders(self, user_id: str = None) -> list[model.TraderModel]:
         query = {}
         if user_id:
             query[consts.MODEL_FIELD_USER_ID] = user_id
         data = await self._db.find_many(query)
-        traders = [models.TraderModel(**trader) for trader in data]
+        traders = [model.TraderModel(**trader) for trader in data]
         return traders if traders else []
 
-    async def create_trader(self, trader: models.TraderCreateModel) -> models.TraderModel:
+    async def create_trader(self, trader: model.TraderCreateModel) -> model.TraderModel:
         # TODO - add trader checks
         # await self.check_trader_status(trader)
 
@@ -126,7 +126,7 @@ class TraderHandler:
         created_id = await self._db.insert_one(trader_dict)
         return await self.get_trader(created_id)
 
-    async def update_trader(self, trader_id: str, trader: models.TraderChangeModel) -> models.TraderModel:
+    async def update_trader(self, trader_id: str, trader: model.TraderChangeModel) -> model.TraderModel:
         exist_trader = await self.get_trader(trader_id)
         if not exist_trader:
             raise ExceptionHandler(
@@ -146,15 +146,15 @@ class TraderHandler:
         await self._db.update_one(trader_id, trader_dict)
         return await self.get_trader(trader_id)
 
-    async def check_trader_status(self, trader: models.TraderModel):
+    async def check_trader_status(self, trader: model.TraderModel):
         pass
         # TODO - add trader checks
 
-    async def get_default_trader(self, user_id: str) -> models.TraderModel:
+    async def get_default_trader(self, user_id: str) -> model.TraderModel:
         query = {consts.MODEL_FIELD_USER_ID: user_id,
                  consts.MODEL_FIELD_DEFAULT: True}
         data = await self._db.find_one(query)
-        return models.TraderModel(**data) if data else None
+        return model.TraderModel(**data) if data else None
 
     async def delete_trader(self, trader_id: str) -> bool:
         exist_trader = await self.get_trader(trader_id)
@@ -171,24 +171,24 @@ class UserHandler:
     def __init__(self) -> None:
         self._db = MongoDB(consts.DB_COLLECTION_USERS)
 
-    async def get_user(self, user_id: str) -> models.UserModel:
+    async def get_user(self, user_id: str) -> model.UserModel:
         data = await self._db.find_one(user_id)
-        return models.UserModel(**data) if data else None
+        return model.UserModel(**data) if data else None
 
-    async def get_users(self) -> list[models.UserModel]:
+    async def get_users(self) -> list[model.UserModel]:
         data = await self._db.find_many()
-        users = [models.UserModel(**user) for user in data]
+        users = [model.UserModel(**user) for user in data]
         return users if users else []
 
-    async def create_user(self, user: models.UserCreateModel) -> models.UserModel:
+    async def create_user(self, user: model.UserCreateModel) -> model.UserModel:
         user_dict = user.to_mongodb()
         created_id = await self._db.insert_one(user_dict)
-        channel_mdl = models.ChannelCreateModel(
+        channel_mdl = model.ChannelCreateModel(
             user_id=created_id, type=user.type, channel=user.channel)
         await ChannelHandler().create_channel(channel_mdl)
         return await self.get_user(created_id)
 
-    async def update_user(self, user_id: str, user: models.UserChangeModel) -> models.UserModel:
+    async def update_user(self, user_id: str, user: model.UserChangeModel) -> model.UserModel:
         exist_user = await self.get_user(user_id)
         if not exist_user:
             raise ExceptionHandler(
@@ -224,12 +224,16 @@ class ExchangeHandler:
     def __init__(self, trader_id: str):
         self.__trader_id = trader_id
         self.__api: ApiBase = None
-        self.__trader_mdl: models.TraderModel = None
+        self.__trader_mdl: model.TraderModel = None
 
     def get_trader_id(self) -> str:
         return self.__trader_id
 
-    async def get_trader_model(self) -> models.TraderModel:
+    async def get_exchange_id(self) -> enum.ExchangeIdEnum:
+        trader_mdl = await self.get_trader_model()
+        return trader_mdl.exchange_id
+
+    async def get_trader_model(self) -> model.TraderModel:
         if not self.__trader_mdl:
             self.__trader_mdl = await TraderHandler().get_trader(self.__trader_id)
 
@@ -243,12 +247,12 @@ class ExchangeHandler:
 
         if not self.__api:
 
-            trader_mdl: models.TraderModel = await self.get_trader_model()
+            trader_mdl: model.TraderModel = await self.get_trader_model()
             exchange_id = trader_mdl.exchange_id
 
-            if exchange_id == enums.ExchangeIdEnum.dzengi_com:
+            if exchange_id == enum.ExchangeIdEnum.dzengi_com:
                 self.__api = ApiDzengiCom(trader_mdl)
-            elif exchange_id == enums.ExchangeIdEnum.demo_dzengi_com:
+            elif exchange_id == enum.ExchangeIdEnum.demo_dzengi_com:
                 self.__api = ApiDemoDzengiCom(trader_mdl)
             else:
                 raise ExceptionHandler(
@@ -260,10 +264,10 @@ class ExchangeHandler:
 class SymbolHandler():
     def __init__(self, trader_id: str):
         self.__exchange_handler = ExchangeHandler(trader_id)
-        self._buffer_symbols: BufferBaseHandler = BufferBaseHandler()
+        self._buffer_symbols: BufferBaseHandler = singleton_runtime.get_symbol_buffer_handler()
         self._buffer_timeframes: BufferBaseHandler = BufferBaseHandler()
 
-    async def get_symbol(self, symbol: str) -> models.SymbolModel:
+    async def get_symbol(self, symbol: str) -> model.SymbolModel:
         try:
             symbol_model = await self.get_symbols()[symbol]
         except KeyError:
@@ -281,23 +285,25 @@ class SymbolHandler():
 
         return symbol_mdl.trading_fee
 
-    async def get_symbols(self) -> dict[models.SymbolModel]:
+    async def get_symbols(self) -> dict[model.SymbolModel]:
         symbols = {}
+        exchange_id = await self.__exchange_handler.get_exchange_id()
 
         # If buffer data is existing -> get symbols from the buffer
-        if self._buffer_symbols.is_buffer():
+        if self._buffer_symbols.is_data_in_buffer(key=exchange_id):
             #  Get symbols from the buffer
-            symbols = self._buffer_symbols.get_buffer()
+            symbols = self._buffer_symbols.get_from_buffer(key=exchange_id)
         else:
             # Send a request to an API to get symbols
             api = await self.__exchange_handler.get_api()
             symbols = await api.get_symbols()
             # Set fetched symbols to the buffer
-            self._buffer_symbols.set_buffer(symbols)
+            self._buffer_symbols.set_data_to_buffer(
+                key=exchange_id, data=symbols)
 
         return symbols
 
-    async def get_symbol_list(self, **kwargs) -> list[models.SymbolModel]:
+    async def get_symbol_list(self, **kwargs) -> list[model.SymbolModel]:
         symbol_list = []
         symbol_models = await self.get_symbols()
 
@@ -320,7 +326,7 @@ class SymbolHandler():
 
         return sorted(symbol_list, key=lambda x: x.symbol)
 
-    async def is_available(self, interval: enums.IntervalEnum, symbol: str) -> bool:
+    async def is_available(self, interval: enum.IntervalEnum, symbol: str) -> bool:
         pass
         # TODO
 
@@ -330,7 +336,7 @@ class HistoryDataHandler():
         self._exchange_handler: ExchangeHandler = ExchangeHandler(trader_id)
         self._hd_buffer: BufferBaseHandler = BufferBaseHandler()
 
-    async def get_history_data(self, hd_param: models.HistoryDataParamModel, **kwargs) -> models.HistoryDataModel:
+    async def get_history_data(self, hd_param: model.HistoryDataParamModel, **kwargs) -> model.HistoryDataModel:
         hd_mdl = None
 
         api = await self._exchange_handler.get_api()
@@ -341,7 +347,7 @@ class HistoryDataHandler():
         # If history data is required from buffer and the buffer data exists -> Check the buffer data
         if hd_param.buffer and self._hd_buffer.is_data_in_buffer(key=buffer_key):
             # Get history data from buffer
-            hd_mdl_buffer: models.HistoryDataModel = self._hd_buffer.get_from_buffer(
+            hd_mdl_buffer: model.HistoryDataModel = self._hd_buffer.get_from_buffer(
                 buffer_key)
 
             # Get Current end_datetime for History Data
@@ -358,13 +364,13 @@ class HistoryDataHandler():
                 # Required DataFrame based on limit
                 df_required = df_required.tail(hd_param.limit)
 
-                hd_mdl = models.HistoryDataModel(
+                hd_mdl = model.HistoryDataModel(
                     symbol=hd_param.symbol, interval=hd_param.interval, limit=hd_param.limit, data=df_required)
 
         # If history data from the buffer doesn't exist
         if not hd_mdl:
             # Send a request to an API to get history data
-            hd_mdl = api.get_history_data(hd_param=hd_param)
+            hd_mdl = await api.get_history_data(hd_param=hd_param)
 
             # Set fetched history data to the buffer if it's required
             if hd_param.buffer:
@@ -372,7 +378,7 @@ class HistoryDataHandler():
 
         return hd_mdl
 
-    def __get_buffer_key(self, symbol: str, interval: enums.IntervalEnum) -> tuple:
+    def __get_buffer_key(self, symbol: str, interval: enum.IntervalEnum) -> tuple:
         if not symbol or not interval:
             ExceptionHandler(
                 f"[{self.__class__.__name__}]: get_buffer_key - History Data buffer key is invalid: symbol: {
@@ -389,7 +395,7 @@ class SingletonRuntimeHandler:
         if not isinstance(class_._instance, class_):
             class_._instance = object.__new__(class_, *args, **kwargs)
 
-            class_.__symbol_handler_buffer = BufferBaseHandler()
+            class_.__symbol_buffer_handler = BufferBaseHandler()
             # class_.__hd_handler_buffer = BufferBaseHandler()
             # class_.__signal_handler = BufferSingleDictionary()
             # class_.__interval_handler = {}
@@ -399,15 +405,8 @@ class SingletonRuntimeHandler:
 
         return class_._instance
 
-    def get_symbol_handler(self, trader_id: str) -> SymbolHandler:
-        symbol_handler = self.__symbol_handler_buffer.get_from_buffer(
-            key=trader_id)
-        if not symbol_handler:
-            symbol_handler = SymbolHandler(trader_id)
-            self.__symbol_handler_buffer.set_data_to_buffer(
-                key=trader_id, data=symbol_handler)
-
-        return symbol_handler
+    def get_symbol_buffer_handler(self) -> BufferBaseHandler:
+        return self.__symbol_buffer_handler
 
     # def get_hd_handler(self, trader_id: str) -> HistoryDataHandler:
     #     hd_handler = self.__hd_handler_buffer.get_from_buffer(key=trader_id)
@@ -419,7 +418,7 @@ class SingletonRuntimeHandler:
     #     return hd_handler
 
     def refresh(self):
-        self.__symbol_handler_buffer.clear_buffer()
+        self.__symbol_buffer_handler.clear_buffer()
         # self.__hd_handler_buffer.clear_buffer()
 
 

@@ -1,6 +1,7 @@
 import graphene
 import app.graphql.schemas as schema
 import app.handler.handlers as handler
+import app.model.models as model
 
 
 class Query(graphene.ObjectType):
@@ -27,13 +28,18 @@ class Query(graphene.ObjectType):
         type=schema.TradingTypeGrapheneEnum())
 
     async def resolve_user(parent, info, user_id):
-        return await handler.UserHandler().get_user(user_id=user_id)
+        user_mdl = await handler.UserHandler().get_user(user_id=user_id)
+        return model.UserComplexModel(**user_mdl.model_dump())
 
     async def resolve_users(parent, info):
-        return await handler.UserHandler().get_users()
+        user_mdls = await handler.UserHandler().get_users()
+        users = [model.UserComplexModel(**user_mdl.model_dump())
+                 for user_mdl in user_mdls]
+        return users if users else []
 
     async def resolve_channel(parent, info, channel_id):
-        return await handler.ChannelHandler().get_channel(channel_id=channel_id)
+        channel_mdl = await handler.ChannelHandler().get_channel(channel_id=channel_id)
+        return model.ChannelComplexModel(**channel_mdl.model_dump())
 
     async def resolve_channels(parent, info):
         return await handler.ChannelHandler().get_channels()
@@ -45,7 +51,7 @@ class Query(graphene.ObjectType):
         return await handler.TraderHandler().get_traders()
 
     async def resolve_symbol(parent, info, trader_id, symbol):
-        return await handler.singleton_runtime.get_symbol_handler(trader_id).get_symbol(symbol)
+        return await handler.SymbolHandler(trader_id).get_symbol(symbol)
 
     async def resolve_symbols(parent, info, trader_id, symbol, name, status, type):
-        return await handler.singleton_runtime.get_symbol_handler(trader_id).get_symbol_list(symbol=symbol, name=name, status=status, type=type)
+        return await handler.SymbolHandler(trader_id).get_symbol_list(symbol=symbol, name=name, status=status, type=type)

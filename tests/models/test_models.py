@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 from pydantic import ValidationError
-from app.models.models import (
+from app.model.models import (
     IdentifierModel,
     SymbolIdModel,
     IntervalIdModel,
@@ -20,7 +20,7 @@ from app.models.models import (
     UserCreateModel,
     UserModel
 )
-from app.models.enums import IntervalEnum, ChannelTypeEnum, TraderStatusEnum, ExchangeIdEnum, SymbolStatusEnum, TradingTypeEnum
+from app.model.enums import IntervalEnum, ChannelTypeEnum, TraderStatusEnum, ExchangeIdEnum, SymbolStatusEnum, TradingTypeEnum
 from app.core.config import consts
 
 
